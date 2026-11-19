@@ -10,23 +10,23 @@ md('''
 # From source files to trusted data products
 ## A practical companion to *Data Platform Architecture Research Report*
 
-**Project:** retail analytics on a lake, an Iceberg lakehouse, and a PostgreSQL warehouse.
+**Project:** retail analytics on an Iceberg lakehouse, from workbook to published views.
 **Source:** the 42-page report dated 10 November 2026, chapters 1–13.
 **Learning goal:** understand each component's responsibility, trace a real record to a report, and prove correctness before choosing a larger stack.
 
-This notebook is the main learning document. Supporting Python, SQL/dbt, Compose and monitoring files are part of the lesson, and can be opened and edited from JupyterLab's file browser. Code cells inspect important implementations so that helper calls are not unexplained black boxes.
+Supporting Python, Spark SQL, Compose and monitoring files are available in JupyterLab. Code cells inspect the transformations and validation directly.
 
 **How to study:** read one section, run its cells in order, inspect the output, then attempt its exercise. Use Kernel → Restart Kernel and Run All to check reproducibility. A successful cell is evidence for that specific check, not a production-readiness certificate.
 
 The real dataset contains historical transaction rows. Operational customer changes, SCD2 segments and availability-time examples below are **synthetic teaching data**. They are never presented as observed retail history.
 
 ### Contents
-0. Setup and controls · 1. Concepts · 2. Data flows · 3. Tools and contracts · 4. Medallion · 5. Warehouse · 6. Alternatives · 7. Lakehouse operations and CDC · 8. Warehouse history · 9. Cloud mappings · 10. Cost and performance · 11. Operations and recovery · 12. AI connections · 13. Decision record and exercises.
+0. Setup and controls · 1. Concepts · 2. Data flows · 3. Tools and contracts · 4. Medallion · 5. Validation and publication · 6. Alternatives · 7. Lakehouse operations and CDC · 8. Customer history and query plans · 9. Cloud mappings · 10. Cost and performance · 11. Operations and recovery · 12. AI connections · 13. Decision record and exercises.
 ''')
 md('''
 ## 0. Setup, ports and learning controls
 
-The installed environment uses Docker Desktop's WSL2 backend. Python 3.12 and Java 17 run inside the notebook container. Spark executes locally with four threads; Trino is a separate container. PostgreSQL contains separate databases for warehouse, Iceberg catalog, Airflow metadata and synthetic operational source data.
+The installed environment uses Docker Desktop's WSL2 backend. Python 3.12 and Java 17 run inside the notebook container. Spark executes locally with four threads, and Trino is a separate container. PostgreSQL holds the Iceberg catalog, Airflow metadata and synthetic CDC source.
 
 From **PowerShell**, in `F:\\webdev\\research_and_development`:
 
@@ -60,7 +60,7 @@ from itertools import islice
 import pandas as pd
 from IPython.display import display, Code, SVG, Markdown, Image
 from lab.config import ROOT, DATA, ARTIFACTS, pg_kwargs, trino_connection
-from lab import ingest, lakehouse, warehouse, pipeline, exercises
+from lab import ingest, lakehouse, pipeline, exercises
 
 RUN_BI = os.getenv('LAB_BI', '0') == '1'
 RUN_CDC = os.getenv('LAB_CDC', '0') == '1'
@@ -74,29 +74,29 @@ md('''
 
 **Lakehouse:** a lake plus managed table metadata and compatible engines. Parquet describes a file; Iceberg describes which files belong to a committed table snapshot. The JDBC catalog resolves a table name to authoritative metadata. Spark writes and Trino reads through that same catalog.
 
-**Warehouse:** an analytical database with governed SQL models. PostgreSQL manages its own tables, transactions and system catalog. We will load staging data, use dbt for SQL transformations/tests, and publish dimensional marts.
+**Published data:** Trino views point to a validated Iceberg fact snapshot. Superset queries these views to display the release consistently.
 
 **Medallion:** quality and consumption boundaries. Bronze retains source fidelity; silver establishes reusable meanings; gold exposes a defined product. These are not three required vendors or automatically three physical systems.
 
 **Grain / مستوى تفصيل الصف:** exactly what one row means. Our fact grain is **one accepted workbook row**, not one invoice. One invoice can contain many products and identical-looking source rows can be legitimate.
 
-**Exercise:** explain why a Parquet folder, an Iceberg table and a PostgreSQL table are different even when all three contain the same rows.
+**Exercise:** explain how the S3 files, the Iceberg table snapshots and the Trino view each participate in a published query.
 ''')
 md('''
 ## 2. Architecture and data flow — PDF pp. 7–8
 
-Both branches use the same completed bronze manifest and business rules. They are independently transformed, then compared by business date, currency and country. The visual below shows the data plane. Airflow, contracts, catalog, quality checks, identities and recovery form the control plane around it.
+Spark transforms the completed bronze manifest into silver and gold Iceberg snapshots. Trino validates the snapshots and serves the approved release to Superset. Airflow schedules the run. OpenMetadata records discovery, lineage and quality, and Grafana shows the operational measurements.
 
 SeaweedFS replaces the report's Ceph cluster for this single-machine lesson. It supplies S3 object storage only; its built-in table catalog is not used. The PostgreSQL-backed Iceberg catalog remains the single authority.
 ''')
 code('''
 diagram = '<svg xmlns="http://www.w3.org/2000/svg" width="950" height="360" viewBox="0 0 950 360"><rect width="950" height="360" fill="#0b1221"/>'
-nodes=[(20,140,170,'UCI workbook'),(230,140,190,'Bronze + manifest'),(470,55,210,'Spark / Iceberg'),(470,235,210,'PostgreSQL / dbt'),(740,55,180,'Trino / Gold'),(740,235,180,'Warehouse marts')]
+nodes=[(20,95,160,'UCI workbook'),(205,95,175,'Bronze + manifest'),(405,95,175,'Spark / Iceberg'),(605,95,155,'Trino views'),(785,95,140,'Superset')]
 for x,y,w,label in nodes:
     diagram+=f'<rect x="{x}" y="{y}" width="{w}" height="65" rx="12" fill="#142b43" stroke="#28d7e7"/><text x="{x+w/2}" y="{y+37}" fill="white" text-anchor="middle" font-family="sans-serif" font-size="17">{label}</text>'
-for x1,y1,x2,y2 in [(190,172,230,172),(420,172,470,87),(420,172,470,267),(680,87,740,87),(680,267,740,267)]:
+for x1,y1,x2,y2 in [(180,127,205,127),(380,127,405,127),(580,127,605,127),(760,127,785,127)]:
     diagram+=f'<path d="M{x1} {y1} L{x2} {y2}" stroke="#28d7e7" stroke-width="3" fill="none"/>'
-diagram+='<text x="475" y="340" fill="#f2c572" text-anchor="middle" font-family="sans-serif" font-size="17">Quality gates → exact reconciliation → versioned publication → BI</text></svg>'
+diagram+='<text x="475" y="228" fill="#f2c572" text-anchor="middle" font-family="sans-serif" font-size="17">Validate Iceberg snapshots before publishing the full release</text></svg>'
 display(SVG(diagram))
 ''')
 md('''
@@ -111,7 +111,7 @@ md('''
 | Transaction catalog | JDBC catalog in PostgreSQL | One authoritative table-name/metadata mapping |
 | Processing | Spark SQL / Python | Parse, validate, transform and write Iceberg |
 | Independent serving | Trino | Query Iceberg through shared metadata |
-| Warehouse | PostgreSQL + dbt | SQL models, relational publication, model dependency/tests |
+| Published datasets | Trino views | Read one validated Iceberg fact snapshot and aggregate it for BI |
 | BI / orchestration | Superset / Airflow | Present products / execute dependencies and retries |
 | CDC | Debezium + Kafka | Capture source WAL changes and retain transport history |
 | Monitoring | Prometheus + Grafana | Expose pipeline quality, duration, freshness, dependency status and CDC |
@@ -133,7 +133,7 @@ The dataset was chosen because its real missing values and cancellations make qu
 * Missing customers: retain the transaction with `UNKNOWN` customer key. Do not silently remove its amount from totals.
 * Negative quantities and cancellation invoices: retain and label. Negative unit prices, invalid dates, zero/non-integral quantities and missing invoice/product identifiers are quarantined with reasons.
 * Net sales: signed quantity × unit price after the above contract. This is not audited revenue recognition, and no tax/fee policy is invented.
-* Publication: input rows = accepted + quarantined; source keys are unique; daily totals match exactly across engines.
+* Publication: input rows equal accepted plus quarantined. Source keys are unique, and the gold daily totals match the fact rollup exactly.
 
 **Exercise:** decide how zero-price lines and postage/discount stock codes should be handled for a different business product. Change the contract before changing the code.
 ''')
@@ -162,7 +162,7 @@ md('''
 
 Spark, Scala, Java, Iceberg runtime artifacts, S3 IO and Trino must agree on the operations we actually use. A shared format name is insufficient. This smoke test creates an Iceberg format-v2 table with Spark and reads an exact decimal value from Trino through the same PostgreSQL catalog.
 
-The next cell runs the same full pipeline as Airflow. The compatibility check is its first query validation. Expect `spark_write_trino_read: passed` and amount `12.34`. The remaining cells explore the resulting lakehouse and warehouse.
+The next cell runs the same full pipeline as Airflow. The compatibility check is its first query validation. Expect `spark_write_trino_read: passed` and amount `12.34`. The remaining cells explore the resulting lakehouse.
 ''')
 code('''
 full_run = pipeline.run()
@@ -214,33 +214,29 @@ assert detail==aggregate
 print('Gold detail/aggregate reconciliation:',detail)
 ''')
 md('''
-## 5. Traditional warehouse and ELT — PDF pp. 16–18
+## 5. Trino validation and publication
 
-The warehouse branch starts from the same completed bronze files, not the lakehouse's silver output. Python bulk-loads restricted `staging.raw_lines`. dbt independently parses and models the data using PostgreSQL SQL.
+Trino validates the Iceberg snapshots created by Spark. It checks full row accounting, unique source-row IDs, the fact's signed decimal total and customer relationships. Trino recomputes daily groups from the pinned invoice facts and compares them with the materialized gold aggregate.
 
-Every build gets a new `candidate_<id>` schema. dbt builds typed staging models, dimensions, facts and aggregates there, then runs uniqueness, relationship, row-accounting and amount-reconciliation tests. This deliberately avoids changing the published interface while tests are still running.
-
-After cross-engine validation, a PostgreSQL transaction updates the stable `core` and `mart` views and writes audit evidence. This implements ELT: load source-shaped data, then transform inside the analytical database. ETL would move more of those transformations before loading. Both still need contracts and replay rules.
+After validation, the release records the Iceberg snapshot IDs. `lake.published.fact_invoice_line` pins the released fact snapshot, and `lake.published.daily_sales` groups that same view for Superset.
 ''')
 code('''
-warehouse_candidate=release['warehouse']
-display({'loaded':full_run['input_rows'],**warehouse_candidate})
-display(Code((ROOT/'dbt/models/staging/stg_typed.sql').read_text(),language='sql'))
-display(Code((ROOT/'dbt/models/marts/daily_sales.sql').read_text(),language='sql'))
+display(Code(inspect.getsource(pipeline.validate),language='python'))
+display(Code(inspect.getsource(lakehouse.publish_views),language='python'))
 ''')
 md('''
-### Compare independently produced products before publication
+### Read and verify the published snapshots
 
 The comparison checks every daily date/currency/country group, row counts, gross sales, credits and signed net sales. Decimal equality is exact. A match of grand totals alone would be weaker: two errors could cancel each other.
 
-The release records Iceberg snapshot IDs and the successful warehouse build schema. Consumers can pin Iceberg reads to those snapshots. PostgreSQL publication is atomic within its transaction; the combined lakehouse/warehouse release is recorded explicitly, rather than claiming a cross-system distributed transaction.
+The release manifest and the BI query paths expose the validated release. Superset stays on its last published fact while Spark builds newer snapshots.
 ''')
 code('''
-reconciliation=pipeline.reconcile(lake_candidate,warehouse_candidate)
-assert reconciliation==release['reconciliation']
-display(reconciliation)
+validation=pipeline.validate(lake_candidate)
+assert validation==release['validation']
+display(validation)
 print('Published release:',release['release_id'])
-display(warehouse.negative_access_test())
+display(lakehouse.verify_bi_access())
 ''')
 md('''
 ## 6. Technology comparisons and consumption — PDF pp. 19–21
@@ -248,7 +244,6 @@ md('''
 | Choice | What this lab demonstrates | When to consider an alternative |
 |---|---|---|
 | Iceberg | Shared Spark/Trino tables and snapshots | Delta for a Spark/Databricks estate; Hudi for a justified update-heavy design |
-| PostgreSQL warehouse | Dimensional SQL products and transactional publication | MPP/managed warehouse after measured concurrency or scan limits |
 | Separate Trino engine | Independent SQL access to shared files | Omit when Spark SQL or an existing managed endpoint meets the need |
 | SeaweedFS | Laptop S3-compatible storage | Ceph with an operating storage team; managed object storage for reduced operations |
 | Airflow | Dependencies, retries and audit of scheduled jobs | Simpler scheduler for a few stable jobs; native platform workflows |
@@ -268,9 +263,9 @@ display(daily.groupby('country').net_sales_plot.sum().nlargest(10).rename('signe
 md('''
 ### Editable Superset dashboard
 
-In PowerShell run `.\\scripts\\lab.cmd bi` to start Superset or `.\\scripts\\lab.cmd platform` to start and provision the complete stack. The following cell, when `RUN_BI=True`, creates the read-only warehouse connection and provisions the overview, product/customer, and credit/coverage dashboards.
+In PowerShell run `.\\scripts\\lab.cmd bi` to start Superset or `.\\scripts\\lab.cmd platform` to start and provision the complete stack. When `RUN_BI=True`, this cell configures the read-only Trino connection and provisions the overview, product/customer, and credit/coverage dashboards.
 
-To enable the cell interactively, set `RUN_BI=True` above and rerun this cell. Sign in at http://localhost:18088 with `admin` and the local `SUPERSET_ADMIN_PASSWORD`. Do not display that password in the notebook. The dashboard reads stable `mart` views; it is refreshed by later approved releases.
+To enable the cell interactively, set `RUN_BI=True` above. Sign in at http://localhost:18088 with `admin` and the local `SUPERSET_ADMIN_PASSWORD`. The dashboards read the `lake.published` views and follow later approved releases.
 ''')
 code('''
 if RUN_BI:
@@ -314,7 +309,7 @@ md('''
 
 Start `.\\scripts\\lab.cmd cdc` in PowerShell. This adds a single-node Kafka broker and Debezium Connect. PostgreSQL was initialized with `wal_level=logical`; the connector uses a dedicated replication role and an explicitly created publication of `source_demo.public.customers`.
 
-A separately published heartbeat table advances offsets when customer traffic is idle. This prevents warehouse writes in other databases from silently accumulating retained source WAL. Once CDC is enabled, the launcher resumes its consumer with the core lab. Monitor slot progress as well as connector process health.
+A published heartbeat advances offsets when customer traffic is idle. The launcher resumes the connector with the core lab. Monitor slot progress, retained WAL and connector process health.
 
 Set `RUN_CDC=True` to run the following cells. Steps: seed synthetic customers → snapshot with Debezium → update/insert/delete source rows → poll Kafka into immutable bronze JSONL → persist the completed manifest → commit consumer offsets → merge retained events into Iceberg silver state.
 
@@ -336,19 +331,19 @@ else:
     print('CDC integration not executed: start cdc profile and set RUN_CDC=True.')
 ''')
 md('''
-## 8. Warehouse history and maintenance — PDF pp. 26–28
+## 8. Customer history and Trino query plans
 
 SCD Type 2 retains versions of selected descriptive attributes. A surrogate key identifies a version; a natural key identifies the real entity. Half-open validity intervals `[valid_from, valid_to)` avoid double-matching a fact exactly at a change boundary.
 
-The exercise creates `learning.customer_history` from synthetic customer segments and checks that the boundary resolves to exactly one row and that no versions overlap. It does not invent segment history for UCI customers.
-
-For performance, inspect `EXPLAIN (ANALYZE, BUFFERS)` before adding indexes. PostgreSQL sequential scans can be appropriate for broad analytical aggregates. Partitioning is justified by pruning/retention needs, not by a rule that every fact table must be partitioned.
+The synthetic exercise checks that the boundary matches one version and that the intervals do not overlap. For query performance, inspect Trino's `EXPLAIN ANALYZE` to see the aggregation and the Iceberg scan work. Measure pruning and scan cost before choosing partitioning or compaction.
 ''')
 code('''
 display(exercises.scd2_experiment())
-import psycopg
-with psycopg.connect(**pg_kwargs()) as conn:
-    plan=conn.execute('EXPLAIN (ANALYZE, BUFFERS) SELECT country,sum(net_sales) FROM mart.daily_sales GROUP BY country').fetchall()
+from contextlib import closing
+with closing(trino_connection('lake_bi','published')) as conn:
+    cursor=conn.cursor()
+    cursor.execute('EXPLAIN ANALYZE SELECT country,sum(net_sales) FROM lake.published.daily_sales GROUP BY country')
+    plan=cursor.fetchall()
 print(chr(10).join(row[0] for row in plan))
 ''')
 md('''
@@ -359,20 +354,19 @@ md('''
 | Object storage | SeaweedFS | S3 | ADLS / OneLake | Cloud Storage |
 | Managed tables | Iceberg | Iceberg with supported Glue catalog | Delta in Fabric/Databricks | Supported Iceberg/BigLake integration |
 | Processing | Spark | Glue Spark | Fabric Spark / Databricks | Managed Spark |
-| Warehouse | PostgreSQL | Redshift | Fabric Warehouse | BigQuery |
 | SQL/BI | Trino + Superset | Athena + BI | SQL endpoint + Power BI | BigQuery + BI |
 | CDC | Debezium/Kafka | Supported DMS path | Supported pipelines/connectors | Supported Datastream path |
 
-These are alternative mappings, not a combined shopping list. Fabric Lakehouse's SQL endpoint is not the same item as Fabric Warehouse. Iceberg catalog ownership, format versions, reader/writer permissions, region/edition support and maintenance ownership must be verified for each managed path.
+Verify Iceberg catalog ownership, format versions, reader/writer permissions, region support and maintenance ownership for a managed implementation.
 
-**Exercise:** design a warehouse-first Azure/Fabric version of this lab. Name which local components disappear, which capabilities remain, and which business definitions stay unchanged. No cloud resources are provisioned by this notebook.
+**Exercise:** map the lakehouse to one managed cloud and explain how its query endpoint would publish the validated release.
 ''')
 md('''
 ## 10. Cost, complexity and measured performance — PDF pp. 32–33
 
 TCO includes storage, ingestion, transforms, query/capacity, metadata, network, backups, BI/licenses and operating labor. A free package does not have zero operating cost. The following arithmetic uses **illustrative user-supplied tariffs**, not live cloud quotes.
 
-Measure cold/warm latency separately. This local exercise times repeated queries against already built products. Results describe the laptop lab, not a general lakehouse-versus-warehouse winner. Record input scope and query shape with every measurement.
+Measure cold and warm latency separately. Record input scope and query shape with each measurement.
 ''')
 code('''
 display(exercises.cost_model(storage_gib=100,storage_rate='0.02',queries_per_day=100,gib_per_query=20,scan_rate_per_tib='5'))
@@ -388,14 +382,14 @@ md('''
 
 ### Roles and publication
 
-The notebook connection is a lab administrator because it bootstraps schemas and catalogs. The BI warehouse connection is a separate `bi_reader` role with access to published marts; tests verify that staging/core access is denied. Spark/Trino and local S3 are in a trusted educational network. This lab does not claim full multi-tenant catalog/bucket authorization or enterprise TLS/SSO; see `docs/production-boundaries.md` for the concrete changes needed.
+The notebook identity bootstraps schemas and validates snapshots. Superset's `lake_bi` identity reads the published views. Permission checks verify that it is denied direct access to silver and gold data. See `docs/production-boundaries.md` for the deployment's trust model.
 
-The publication failure experiment below creates an isolated candidate daily-sales table, changes one amount, then calls the real cross-engine reconciliation function. The error must block publication and leave the current release manifest unchanged. The temporary failure schema is removed after the check.
+The failure exercise reads the active Iceberg aggregate, modifies one amount in memory and runs the actual group comparison. A difference raises before publication.
 ''')
 code('''
 from lab.operations import publication_gate_experiment
 display(publication_gate_experiment())
-display(warehouse.negative_access_test())
+display(lakehouse.verify_bi_access())
 ''')
 md('''
 ### Scheduling, backfills and observability
@@ -404,20 +398,17 @@ Start `.\\scripts\\lab.cmd orchestration`. Airflow's `retail_learning_pipeline` 
 
 Start `.\\scripts\\lab.cmd monitoring` for Grafana's release and quality, services and catalog, and CDC dashboards. Prometheus records full-input coverage, reconciled groups, duration by stage, dependencies, and replication health.
 
-Open [OpenMetadata](http://localhost:8585) and search for **Retail Sales**. Follow the bronze lineage into the dbt and Iceberg branches, then open the warehouse `daily_sales` test result to see the count of reconciled groups. The release catalog sync reads real asset metadata and pipeline evidence. See `docs/openmetadata.md` for dashboards, startup and verification commands.
+Open [OpenMetadata](http://localhost:8585) and search for **Retail Sales**. Follow the workbook into bronze, silver, gold and the published Trino views. The gold `daily_sales` quality result contains the group comparison. See `docs/openmetadata.md` for dashboard links and verification.
 
-### Backup and restore drill
+### Read a retained release
 
-In PowerShell run `.\\scripts\\lab.cmd restore`. It takes a logical warehouse backup, restores into a newly named database, and compares published fact row count and exact monetary total. The backup and evidence are copied to `artifacts/`. It does not overwrite the working warehouse.
-
-Snapshot retention is not backup. A complete lakehouse disaster-recovery plan must preserve object data, Iceberg metadata, catalog pointers, credentials/configuration and coherent release references. Recovery from total object-volume loss is a documented follow-up boundary, not a test falsely claimed by the warehouse restore drill.
+Verify the data in an older release by querying its saved Iceberg snapshot IDs. Full recovery also depends on retained files, catalog metadata and the deployment configuration.
 ''')
 code('''
-restore_evidence=ARTIFACTS/'restore-verification.json'
-if restore_evidence.exists():
-    display(json.loads(restore_evidence.read_text(encoding='utf-8-sig')))
-else:
-    print('Restore drill not yet recorded. Run scripts/lab.cmd restore in PowerShell.')
+from lab.operations import verify_pinned_release
+older=[p for p in sorted((DATA/'releases').glob('*.json'),reverse=True) if p.stem < release['release_id']]
+retained=next((item for path in older if (item:=json.loads(path.read_text())).get('engine')=='lakehouse'),release)
+display(verify_pinned_release(retained))
 display(pd.DataFrame([{'table':k,'published_snapshot':v} for k,v in release['lakehouse']['snapshots'].items()]))
 ''')
 md('''
@@ -425,7 +416,7 @@ md('''
 
 Inspect `lake.silver.transactions.files` and `.snapshots`. Compare file counts to query planning time. A lab with a few large files may not need compaction. A production compaction operation must consider concurrent writers and retention requirements. Never delete arbitrary old Parquet/metadata files from an Iceberg table directory.
 
-Suggested recovery objectives for this experiment: zero loss of the frozen input snapshot; restore the small warehouse within 15 minutes. Measure the actual restore time and state whether that target was met. These are lab targets, not an SLA for a real business.
+Before expiration, identify every snapshot used by the published views and retained releases.
 ''')
 code('''
 display(spark.sql('SELECT count(*) data_files,sum(file_size_in_bytes) total_bytes FROM lake.silver.transactions.files').toPandas())
@@ -451,27 +442,27 @@ md('''
 
 Complete an architecture decision record with: consumers/products, grain and metric definitions, freshness/concurrency requirements, recovery/access constraints, measured workload, operating ownership, chosen option, alternatives, and revisit triggers.
 
-**For this dataset alone**, a PostgreSQL warehouse or a small local SQL engine could deliver the analytical questions. The larger Iceberg/Spark/Trino branch is installed here to learn the report's component interactions, not because one million retail rows require distributed infrastructure.
+The lab uses Iceberg, Spark and Trino to demonstrate how a writer, table catalog and query engine work together on the same data.
 
 **Capstone exercises**
 
 1. Trace one `source_row_id` from workbook sheet/row through bronze, silver and the published fact.
 2. Replay the identical completed input. Prove row counts and grouped decimal totals do not change; snapshot IDs are allowed to change.
 3. Add a malformed quantity to a separate synthetic batch. Show its quarantine reason and reconcile accepted + rejected rows.
-4. Change a cancellation inclusion rule. Update both transformations and the contract, then explain the expected metric movement.
+4. Change a cancellation rule in the transformation and independent fact rollup. Update the contract and explain the expected metric movement.
 5. Inject an old update after a newer delete and show the tombstone prevents resurrection.
-6. Restore the warehouse into a fresh database and verify counts, totals and recovery time.
-7. Choose a warehouse-first design for a small SQL team, then name the measured trigger that would justify Trino, streaming or a managed MPP engine.
+6. Compare the row counts and totals in two retained Iceberg releases.
+7. Define a query latency or freshness threshold that would justify scaling the lakehouse.
 
 ### What completion means
 
-The core lab is complete when the Spark/Trino compatibility gate, full-input accounting, dbt checks, grouped reconciliation, publication failure gate, negative BI permissions, replay/delete exercises and restart/run-all execution pass. BI, CDC, orchestration, monitoring and restore have their own evidence files. Read actual evidence; a configuration file alone is not evidence that a service was installed or tested.
+Check the run evidence for compatibility, row accounting, Iceberg integrity, daily totals, the publication gate, BI access and CDC replay. BI, orchestration, monitoring and the catalog report their own live results.
 ''')
 code('''
 from datetime import datetime,timezone
 evidence={'executed_at':datetime.now(timezone.utc).isoformat(),'input_scope':manifest['scope'],'input_rows':manifest['rows'],
  'accepted_rows':lake_candidate['accepted_rows'],'quarantined_rows':lake_candidate['quarantined_rows'],
- 'compatibility':'passed','cross_engine_reconciliation':reconciliation,'schema_evolution_and_time_travel':'passed',
+ 'compatibility':'passed','iceberg_validation':validation,'schema_evolution_and_time_travel':'passed',
  'negative_BI_permissions':'passed','publication_failure_gate':'passed','replay_and_tombstones':'passed',
  'SCD2_intervals':'passed','temporal_features':'passed','permission_aware_retrieval':'passed',
  'BI_executed_in_this_notebook':RUN_BI,'CDC_executed_in_this_notebook':RUN_CDC}
@@ -492,7 +483,6 @@ Official implementation references checked during preparation:
 * Iceberg JDBC catalog: https://iceberg.apache.org/docs/latest/jdbc/
 * Trino catalogs: https://trino.io/docs/current/object-storage/metastores.html
 * SeaweedFS: https://github.com/seaweedfs/seaweedfs
-* dbt PostgreSQL: https://docs.getdbt.com/docs/core/connect-data-platform/postgres-setup
 * Airflow Docker: https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/
 * Debezium PostgreSQL: https://debezium.io/documentation/reference/stable/connectors/postgresql.html
 * Superset: https://superset.apache.org/docs/

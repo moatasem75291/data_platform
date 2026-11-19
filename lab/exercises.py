@@ -25,23 +25,12 @@ def replay_experiment():
     return {'duplicate_replay':'passed','late_update_after_delete':'passed','same_version_conflict':conflict,'retained_tombstone':once[1]}
 
 def scd2_experiment():
-    import psycopg
-    from .config import pg_kwargs
-    with psycopg.connect(**pg_kwargs()) as conn:
-        conn.execute('CREATE SCHEMA IF NOT EXISTS learning')
-        conn.execute('DROP TABLE IF EXISTS learning.customer_history')
-        conn.execute('''CREATE TABLE learning.customer_history (
-          customer_sk BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-          customer_id TEXT NOT NULL, segment TEXT NOT NULL,
-          valid_from timestamptz NOT NULL,valid_to timestamptz,
-          CHECK(valid_to IS NULL OR valid_to>valid_from))''')
-        conn.execute("INSERT INTO learning.customer_history(customer_id,segment,valid_from,valid_to) VALUES ('SYNTH-1','new','2010-01-01','2010-06-01'),('SYNTH-1','loyal','2010-06-01',NULL)")
-        rows=conn.execute("SELECT segment FROM learning.customer_history WHERE customer_id='SYNTH-1' AND valid_from<='2010-06-01' AND (valid_to>'2010-06-01' OR valid_to IS NULL)").fetchall()
-        assert rows==[('loyal',)]
-        overlap=conn.execute('''SELECT count(*) FROM learning.customer_history a JOIN learning.customer_history b
-          ON a.customer_id=b.customer_id AND a.customer_sk<b.customer_sk
-          AND tstzrange(a.valid_from,a.valid_to,'[)') && tstzrange(b.valid_from,b.valid_to,'[)')''').fetchone()[0]
-        assert overlap==0
+    boundary = datetime(2010, 6, 1, tzinfo=timezone.utc)
+    versions = [('new', datetime(2010, 1, 1, tzinfo=timezone.utc), boundary), ('loyal', boundary, None)]
+    matches = [segment for segment, start, end in versions if start <= boundary and (end is None or boundary < end)]
+    assert matches == ['loyal']
+    overlap = sum(second_start < first_end for (_, _, first_end), (_, second_start, _) in zip(versions, versions[1:]))
+    assert overlap == 0
     return {'half_open_interval_join':'passed','overlapping_versions':overlap,'data_origin':'synthetic, not observed retail customer history'}
 
 def temporal_features():

@@ -17,6 +17,4 @@ python-dotenv>=1.0,<2
 matplotlib>=3.9,<4
 prometheus-client>=0.21,<1
 confluent-kafka>=2.6,<3
-dbt-core==1.11.13
-dbt-postgres==1.11.0
 pyspark==3.5.8

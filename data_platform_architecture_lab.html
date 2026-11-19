@@ -7802,14 +7802,14 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="From-source-files-to-trusted-data-products">From source files to trusted data products<a class="anchor-link" href="#From-source-files-to-trusted-data-products">¶</a></h1><h2 id="A-practical-companion-to-Data-Platform-Architecture-Research-Report">A practical companion to <em>Data Platform Architecture Research Report</em><a class="anchor-link" href="#A-practical-companion-to-Data-Platform-Architecture-Research-Report">¶</a></h2><p><strong>Project:</strong> retail analytics on a lake, an Iceberg lakehouse, and a PostgreSQL warehouse.
+<h1 id="From-source-files-to-trusted-data-products">From source files to trusted data products<a class="anchor-link" href="#From-source-files-to-trusted-data-products">¶</a></h1><h2 id="A-practical-companion-to-Data-Platform-Architecture-Research-Report">A practical companion to <em>Data Platform Architecture Research Report</em><a class="anchor-link" href="#A-practical-companion-to-Data-Platform-Architecture-Research-Report">¶</a></h2><p><strong>Project:</strong> retail analytics on an Iceberg lakehouse, from workbook to published views.
 <strong>Source:</strong> the 42-page report dated 10 November 2026, chapters 1–13.
 <strong>Learning goal:</strong> understand each component's responsibility, trace a real record to a report, and prove correctness before choosing a larger stack.</p>
-<p>This notebook is the main learning document. Supporting Python, SQL/dbt, Compose and monitoring files are part of the lesson, and can be opened and edited from JupyterLab's file browser. Code cells inspect important implementations so that helper calls are not unexplained black boxes.</p>
+<p>Supporting Python, Spark SQL, Compose and monitoring files are available in JupyterLab. Code cells inspect the transformations and validation directly.</p>
 <p><strong>How to study:</strong> read one section, run its cells in order, inspect the output, then attempt its exercise. Use Kernel → Restart Kernel and Run All to check reproducibility. A successful cell is evidence for that specific check, not a production-readiness certificate.</p>
 <p>The real dataset contains historical transaction rows. Operational customer changes, SCD2 segments and availability-time examples below are <strong>synthetic teaching data</strong>. They are never presented as observed retail history.</p>
 <h3 id="Contents">Contents<a class="anchor-link" href="#Contents">¶</a></h3><ol start="0">
-<li>Setup and controls · 1. Concepts · 2. Data flows · 3. Tools and contracts · 4. Medallion · 5. Warehouse · 6. Alternatives · 7. Lakehouse operations and CDC · 8. Warehouse history · 9. Cloud mappings · 10. Cost and performance · 11. Operations and recovery · 12. AI connections · 13. Decision record and exercises.</li>
+<li>Setup and controls · 1. Concepts · 2. Data flows · 3. Tools and contracts · 4. Medallion · 5. Validation and publication · 6. Alternatives · 7. Lakehouse operations and CDC · 8. Customer history and query plans · 9. Cloud mappings · 10. Cost and performance · 11. Operations and recovery · 12. AI connections · 13. Decision record and exercises.</li>
 </ol>
 </div>
 </div>
@@ -7821,7 +7821,7 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="0.-Setup,-ports-and-learning-controls">0. Setup, ports and learning controls<a class="anchor-link" href="#0.-Setup,-ports-and-learning-controls">¶</a></h2><p>The installed environment uses Docker Desktop's WSL2 backend. Python 3.12 and Java 17 run inside the notebook container. Spark executes locally with four threads; Trino is a separate container. PostgreSQL contains separate databases for warehouse, Iceberg catalog, Airflow metadata and synthetic operational source data.</p>
+<h2 id="0.-Setup,-ports-and-learning-controls">0. Setup, ports and learning controls<a class="anchor-link" href="#0.-Setup,-ports-and-learning-controls">¶</a></h2><p>The installed environment uses Docker Desktop's WSL2 backend. Python 3.12 and Java 17 run inside the notebook container. Spark executes locally with four threads, and Trino is a separate container. PostgreSQL holds the Iceberg catalog, Airflow metadata and synthetic CDC source.</p>
 <p>From <strong>PowerShell</strong>, in <code>F:\webdev\research_and_development</code>:</p>
 <div class="highlight"><pre><span></span><span class="n">uv</span> <span class="n">run</span> <span class="p">-</span><span class="n">-python</span> <span class="n">3</span><span class="p">.</span><span class="n">12</span> <span class="p">-</span><span class="n">-no-project</span> <span class="n">python</span> <span class="n">scripts</span><span class="p">/</span><span class="n">configure</span><span class="p">.</span><span class="n">py</span>
 <span class="p">.\</span><span class="n">scripts</span><span class="p">\</span><span class="n">lab</span><span class="p">.</span><span class="n">cmd</span> <span class="nb">start</span>
@@ -7903,7 +7903,7 @@ a.anchor-link {
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Code</span><span class="p">,</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">Markdown</span><span class="p">,</span> <span class="n">Image</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lab.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ROOT</span><span class="p">,</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">ARTIFACTS</span><span class="p">,</span> <span class="n">pg_kwargs</span><span class="p">,</span> <span class="n">trino_connection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">lab</span><span class="w"> </span><span class="kn">import</span> <span class="n">ingest</span><span class="p">,</span> <span class="n">lakehouse</span><span class="p">,</span> <span class="n">warehouse</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">exercises</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lab</span><span class="w"> </span><span class="kn">import</span> <span class="n">ingest</span><span class="p">,</span> <span class="n">lakehouse</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">exercises</span>
 
 <span class="n">RUN_BI</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'LAB_BI'</span><span class="p">,</span> <span class="s1">'0'</span><span class="p">)</span> <span class="o">==</span> <span class="s1">'1'</span>
 <span class="n">RUN_CDC</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'LAB_CDC'</span><span class="p">,</span> <span class="s1">'0'</span><span class="p">)</span> <span class="o">==</span> <span class="s1">'1'</span>
@@ -7937,10 +7937,10 @@ Project: /opt/lab
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="1.-Core-architectural-concepts-%E2%80%94-PDF-pp.-5%E2%80%936">1. Core architectural concepts — PDF pp. 5–6<a class="anchor-link" href="#1.-Core-architectural-concepts-%E2%80%94-PDF-pp.-5%E2%80%936">¶</a></h2><p><strong>Data lake:</strong> durable files and source evidence, interpreted by a processing/query engine. A bucket can be governed, but it does not itself define table transactions. We will preserve the Excel workbook and immutable Parquet batches.</p>
 <p><strong>Lakehouse:</strong> a lake plus managed table metadata and compatible engines. Parquet describes a file; Iceberg describes which files belong to a committed table snapshot. The JDBC catalog resolves a table name to authoritative metadata. Spark writes and Trino reads through that same catalog.</p>
-<p><strong>Warehouse:</strong> an analytical database with governed SQL models. PostgreSQL manages its own tables, transactions and system catalog. We will load staging data, use dbt for SQL transformations/tests, and publish dimensional marts.</p>
+<p><strong>Published data:</strong> Trino views point to a validated Iceberg fact snapshot. Superset queries these views to display the release consistently.</p>
 <p><strong>Medallion:</strong> quality and consumption boundaries. Bronze retains source fidelity; silver establishes reusable meanings; gold exposes a defined product. These are not three required vendors or automatically three physical systems.</p>
 <p><strong>Grain / مستوى تفصيل الصف:</strong> exactly what one row means. Our fact grain is <strong>one accepted workbook row</strong>, not one invoice. One invoice can contain many products and identical-looking source rows can be legitimate.</p>
-<p><strong>Exercise:</strong> explain why a Parquet folder, an Iceberg table and a PostgreSQL table are different even when all three contain the same rows.</p>
+<p><strong>Exercise:</strong> explain how the S3 files, the Iceberg table snapshots and the Trino view each participate in a published query.</p>
 </div>
 </div>
 </div>
@@ -7951,7 +7951,7 @@ Project: /opt/lab
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2.-Architecture-and-data-flow-%E2%80%94-PDF-pp.-7%E2%80%938">2. Architecture and data flow — PDF pp. 7–8<a class="anchor-link" href="#2.-Architecture-and-data-flow-%E2%80%94-PDF-pp.-7%E2%80%938">¶</a></h2><p>Both branches use the same completed bronze manifest and business rules. They are independently transformed, then compared by business date, currency and country. The visual below shows the data plane. Airflow, contracts, catalog, quality checks, identities and recovery form the control plane around it.</p>
+<h2 id="2.-Architecture-and-data-flow-%E2%80%94-PDF-pp.-7%E2%80%938">2. Architecture and data flow — PDF pp. 7–8<a class="anchor-link" href="#2.-Architecture-and-data-flow-%E2%80%94-PDF-pp.-7%E2%80%938">¶</a></h2><p>Spark transforms the completed bronze manifest into silver and gold Iceberg snapshots. Trino validates the snapshots and serves the approved release to Superset. Airflow schedules the run. OpenMetadata records discovery, lineage and quality, and Grafana shows the operational measurements.</p>
 <p>SeaweedFS replaces the report's Ceph cluster for this single-machine lesson. It supplies S3 object storage only; its built-in table catalog is not used. The PostgreSQL-backed Iceberg catalog remains the single authority.</p>
 </div>
 </div>
@@ -7965,12 +7965,12 @@ Project: /opt/lab
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">diagram</span> <span class="o">=</span> <span class="s1">'&lt;svg xmlns="http://www.w3.org/2000/svg" width="950" height="360" viewBox="0 0 950 360"&gt;&lt;rect width="950" height="360" fill="#0b1221"/&gt;'</span>
-<span class="n">nodes</span><span class="o">=</span><span class="p">[(</span><span class="mi">20</span><span class="p">,</span><span class="mi">140</span><span class="p">,</span><span class="mi">170</span><span class="p">,</span><span class="s1">'UCI workbook'</span><span class="p">),(</span><span class="mi">230</span><span class="p">,</span><span class="mi">140</span><span class="p">,</span><span class="mi">190</span><span class="p">,</span><span class="s1">'Bronze + manifest'</span><span class="p">),(</span><span class="mi">470</span><span class="p">,</span><span class="mi">55</span><span class="p">,</span><span class="mi">210</span><span class="p">,</span><span class="s1">'Spark / Iceberg'</span><span class="p">),(</span><span class="mi">470</span><span class="p">,</span><span class="mi">235</span><span class="p">,</span><span class="mi">210</span><span class="p">,</span><span class="s1">'PostgreSQL / dbt'</span><span class="p">),(</span><span class="mi">740</span><span class="p">,</span><span class="mi">55</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="s1">'Trino / Gold'</span><span class="p">),(</span><span class="mi">740</span><span class="p">,</span><span class="mi">235</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="s1">'Warehouse marts'</span><span class="p">)]</span>
+<span class="n">nodes</span><span class="o">=</span><span class="p">[(</span><span class="mi">20</span><span class="p">,</span><span class="mi">95</span><span class="p">,</span><span class="mi">160</span><span class="p">,</span><span class="s1">'UCI workbook'</span><span class="p">),(</span><span class="mi">205</span><span class="p">,</span><span class="mi">95</span><span class="p">,</span><span class="mi">175</span><span class="p">,</span><span class="s1">'Bronze + manifest'</span><span class="p">),(</span><span class="mi">405</span><span class="p">,</span><span class="mi">95</span><span class="p">,</span><span class="mi">175</span><span class="p">,</span><span class="s1">'Spark / Iceberg'</span><span class="p">),(</span><span class="mi">605</span><span class="p">,</span><span class="mi">95</span><span class="p">,</span><span class="mi">155</span><span class="p">,</span><span class="s1">'Trino views'</span><span class="p">),(</span><span class="mi">785</span><span class="p">,</span><span class="mi">95</span><span class="p">,</span><span class="mi">140</span><span class="p">,</span><span class="s1">'Superset'</span><span class="p">)]</span>
 <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">label</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
     <span class="n">diagram</span><span class="o">+=</span><span class="sa">f</span><span class="s1">'&lt;rect x="</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">" y="</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s1">" width="</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s1">" height="65" rx="12" fill="#142b43" stroke="#28d7e7"/&gt;&lt;text x="</span><span class="si">{</span><span class="n">x</span><span class="o">+</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="si">}</span><span class="s1">" y="</span><span class="si">{</span><span class="n">y</span><span class="o">+</span><span class="mi">37</span><span class="si">}</span><span class="s1">" fill="white" text-anchor="middle" font-family="sans-serif" font-size="17"&gt;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1">&lt;/text&gt;'</span>
-<span class="k">for</span> <span class="n">x1</span><span class="p">,</span><span class="n">y1</span><span class="p">,</span><span class="n">x2</span><span class="p">,</span><span class="n">y2</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">190</span><span class="p">,</span><span class="mi">172</span><span class="p">,</span><span class="mi">230</span><span class="p">,</span><span class="mi">172</span><span class="p">),(</span><span class="mi">420</span><span class="p">,</span><span class="mi">172</span><span class="p">,</span><span class="mi">470</span><span class="p">,</span><span class="mi">87</span><span class="p">),(</span><span class="mi">420</span><span class="p">,</span><span class="mi">172</span><span class="p">,</span><span class="mi">470</span><span class="p">,</span><span class="mi">267</span><span class="p">),(</span><span class="mi">680</span><span class="p">,</span><span class="mi">87</span><span class="p">,</span><span class="mi">740</span><span class="p">,</span><span class="mi">87</span><span class="p">),(</span><span class="mi">680</span><span class="p">,</span><span class="mi">267</span><span class="p">,</span><span class="mi">740</span><span class="p">,</span><span class="mi">267</span><span class="p">)]:</span>
+<span class="k">for</span> <span class="n">x1</span><span class="p">,</span><span class="n">y1</span><span class="p">,</span><span class="n">x2</span><span class="p">,</span><span class="n">y2</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">180</span><span class="p">,</span><span class="mi">127</span><span class="p">,</span><span class="mi">205</span><span class="p">,</span><span class="mi">127</span><span class="p">),(</span><span class="mi">380</span><span class="p">,</span><span class="mi">127</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">127</span><span class="p">),(</span><span class="mi">580</span><span class="p">,</span><span class="mi">127</span><span class="p">,</span><span class="mi">605</span><span class="p">,</span><span class="mi">127</span><span class="p">),(</span><span class="mi">760</span><span class="p">,</span><span class="mi">127</span><span class="p">,</span><span class="mi">785</span><span class="p">,</span><span class="mi">127</span><span class="p">)]:</span>
     <span class="n">diagram</span><span class="o">+=</span><span class="sa">f</span><span class="s1">'&lt;path d="M</span><span class="si">{</span><span class="n">x1</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">y1</span><span class="si">}</span><span class="s1"> L</span><span class="si">{</span><span class="n">x2</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">y2</span><span class="si">}</span><span class="s1">" stroke="#28d7e7" stroke-width="3" fill="none"/&gt;'</span>
-<span class="n">diagram</span><span class="o">+=</span><span class="s1">'&lt;text x="475" y="340" fill="#f2c572" text-anchor="middle" font-family="sans-serif" font-size="17"&gt;Quality gates → exact reconciliation → versioned publication → BI&lt;/text&gt;&lt;/svg&gt;'</span>
+<span class="n">diagram</span><span class="o">+=</span><span class="s1">'&lt;text x="475" y="228" fill="#f2c572" text-anchor="middle" font-family="sans-serif" font-size="17"&gt;Validate Iceberg snapshots before publishing the full release&lt;/text&gt;&lt;/svg&gt;'</span>
 <span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">diagram</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -7984,7 +7984,7 @@ Project: /opt/lab
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedSVG jp-OutputArea-output" data-mime-type="image/svg+xml" tabindex="0">
-<img alt="No description has been provided for this image" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NTAiIGhlaWdodD0iMzYwIiB2aWV3Qm94PSIwIDAgOTUwIDM2MCI+PHJlY3Qgd2lkdGg9Ijk1MCIgaGVpZ2h0PSIzNjAiIGZpbGw9IiMwYjEyMjEiLz48cmVjdCB4PSIyMCIgeT0iMTQwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjY1IiByeD0iMTIiIGZpbGw9IiMxNDJiNDMiIHN0cm9rZT0iIzI4ZDdlNyIvPjx0ZXh0IHg9IjEwNS4wIiB5PSIxNzciIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+VUNJIHdvcmtib29rPC90ZXh0PjxyZWN0IHg9IjIzMCIgeT0iMTQwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjY1IiByeD0iMTIiIGZpbGw9IiMxNDJiNDMiIHN0cm9rZT0iIzI4ZDdlNyIvPjx0ZXh0IHg9IjMyNS4wIiB5PSIxNzciIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+QnJvbnplICsgbWFuaWZlc3Q8L3RleHQ+PHJlY3QgeD0iNDcwIiB5PSI1NSIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI2NSIgcng9IjEyIiBmaWxsPSIjMTQyYjQzIiBzdHJva2U9IiMyOGQ3ZTciLz48dGV4dCB4PSI1NzUuMCIgeT0iOTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+U3BhcmsgLyBJY2ViZXJnPC90ZXh0PjxyZWN0IHg9IjQ3MCIgeT0iMjM1IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjY1IiByeD0iMTIiIGZpbGw9IiMxNDJiNDMiIHN0cm9rZT0iIzI4ZDdlNyIvPjx0ZXh0IHg9IjU3NS4wIiB5PSIyNzIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+UG9zdGdyZVNRTCAvIGRidDwvdGV4dD48cmVjdCB4PSI3NDAiIHk9IjU1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjY1IiByeD0iMTIiIGZpbGw9IiMxNDJiNDMiIHN0cm9rZT0iIzI4ZDdlNyIvPjx0ZXh0IHg9IjgzMC4wIiB5PSI5MiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5UcmlubyAvIEdvbGQ8L3RleHQ+PHJlY3QgeD0iNzQwIiB5PSIyMzUiIHdpZHRoPSIxODAiIGhlaWdodD0iNjUiIHJ4PSIxMiIgZmlsbD0iIzE0MmI0MyIgc3Ryb2tlPSIjMjhkN2U3Ii8+PHRleHQgeD0iODMwLjAiIHk9IjI3MiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5XYXJlaG91c2UgbWFydHM8L3RleHQ+PHBhdGggZD0iTTE5MCAxNzIgTDIzMCAxNzIiIHN0cm9rZT0iIzI4ZDdlNyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQyMCAxNzIgTDQ3MCA4NyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNDIwIDE3MiBMNDcwIDI2NyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNjgwIDg3IEw3NDAgODciIHN0cm9rZT0iIzI4ZDdlNyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTY4MCAyNjcgTDc0MCAyNjciIHN0cm9rZT0iIzI4ZDdlNyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PHRleHQgeD0iNDc1IiB5PSIzNDAiIGZpbGw9IiNmMmM1NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5RdWFsaXR5IGdhdGVzIOKGkiBleGFjdCByZWNvbmNpbGlhdGlvbiDihpIgdmVyc2lvbmVkIHB1YmxpY2F0aW9uIOKGkiBCSTwvdGV4dD48L3N2Zz4="/>
+<img alt="No description has been provided for this image" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NTAiIGhlaWdodD0iMzYwIiB2aWV3Qm94PSIwIDAgOTUwIDM2MCI+PHJlY3Qgd2lkdGg9Ijk1MCIgaGVpZ2h0PSIzNjAiIGZpbGw9IiMwYjEyMjEiLz48cmVjdCB4PSIyMCIgeT0iOTUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjUiIHJ4PSIxMiIgZmlsbD0iIzE0MmI0MyIgc3Ryb2tlPSIjMjhkN2U3Ii8+PHRleHQgeD0iMTAwLjAiIHk9IjEzMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5VQ0kgd29ya2Jvb2s8L3RleHQ+PHJlY3QgeD0iMjA1IiB5PSI5NSIgd2lkdGg9IjE3NSIgaGVpZ2h0PSI2NSIgcng9IjEyIiBmaWxsPSIjMTQyYjQzIiBzdHJva2U9IiMyOGQ3ZTciLz48dGV4dCB4PSIyOTIuNSIgeT0iMTMyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkJyb256ZSArIG1hbmlmZXN0PC90ZXh0PjxyZWN0IHg9IjQwNSIgeT0iOTUiIHdpZHRoPSIxNzUiIGhlaWdodD0iNjUiIHJ4PSIxMiIgZmlsbD0iIzE0MmI0MyIgc3Ryb2tlPSIjMjhkN2U3Ii8+PHRleHQgeD0iNDkyLjUiIHk9IjEzMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5TcGFyayAvIEljZWJlcmc8L3RleHQ+PHJlY3QgeD0iNjA1IiB5PSI5NSIgd2lkdGg9IjE1NSIgaGVpZ2h0PSI2NSIgcng9IjEyIiBmaWxsPSIjMTQyYjQzIiBzdHJva2U9IiMyOGQ3ZTciLz48dGV4dCB4PSI2ODIuNSIgeT0iMTMyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPlRyaW5vIHZpZXdzPC90ZXh0PjxyZWN0IHg9Ijc4NSIgeT0iOTUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNjUiIHJ4PSIxMiIgZmlsbD0iIzE0MmI0MyIgc3Ryb2tlPSIjMjhkN2U3Ii8+PHRleHQgeD0iODU1LjAiIHk9IjEzMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5TdXBlcnNldDwvdGV4dD48cGF0aCBkPSJNMTgwIDEyNyBMMjA1IDEyNyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMzgwIDEyNyBMNDA1IDEyNyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTgwIDEyNyBMNjA1IDEyNyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNzYwIDEyNyBMNzg1IDEyNyIgc3Ryb2tlPSIjMjhkN2U3IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSI0NzUiIHk9IjIyOCIgZmlsbD0iI2YyYzU3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPlZhbGlkYXRlIEljZWJlcmcgc25hcHNob3RzIGJlZm9yZSBwdWJsaXNoaW5nIHRoZSBmdWxsIHJlbGVhc2U8L3RleHQ+PC9zdmc+"/>
 </div>
 </div>
 </div>
@@ -8031,9 +8031,9 @@ Project: /opt/lab
 <td>Query Iceberg through shared metadata</td>
 </tr>
 <tr>
-<td>Warehouse</td>
-<td>PostgreSQL + dbt</td>
-<td>SQL models, relational publication, model dependency/tests</td>
+<td>Published datasets</td>
+<td>Trino views</td>
+<td>Read one validated Iceberg fact snapshot and aggregate it for BI</td>
 </tr>
 <tr>
 <td>BI / orchestration</td>
@@ -8067,7 +8067,7 @@ Project: /opt/lab
 <li>Missing customers: retain the transaction with <code>UNKNOWN</code> customer key. Do not silently remove its amount from totals.</li>
 <li>Negative quantities and cancellation invoices: retain and label. Negative unit prices, invalid dates, zero/non-integral quantities and missing invoice/product identifiers are quarantined with reasons.</li>
 <li>Net sales: signed quantity × unit price after the above contract. This is not audited revenue recognition, and no tax/fee policy is invented.</li>
-<li>Publication: input rows = accepted + quarantined; source keys are unique; daily totals match exactly across engines.</li>
+<li>Publication: input rows equal accepted plus quarantined. Source keys are unique, and the gold daily totals match the fact rollup exactly.</li>
 </ul>
 <p><strong>Exercise:</strong> decide how zero-price lines and postage/discount stock codes should be handled for a different business product. Change the contract before changing the code.</p>
 </div>
@@ -8724,7 +8724,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="4.2-Compatibility-gate-before-building-the-lakehouse">4.2 Compatibility gate before building the lakehouse<a class="anchor-link" href="#4.2-Compatibility-gate-before-building-the-lakehouse">¶</a></h3><p>Spark, Scala, Java, Iceberg runtime artifacts, S3 IO and Trino must agree on the operations we actually use. A shared format name is insufficient. This smoke test creates an Iceberg format-v2 table with Spark and reads an exact decimal value from Trino through the same PostgreSQL catalog.</p>
-<p>The next cell runs the same full pipeline as Airflow. The compatibility check is its first query validation. Expect <code>spark_write_trino_read: passed</code> and amount <code>12.34</code>. The remaining cells explore the resulting lakehouse and warehouse.</p>
+<p>The next cell runs the same full pipeline as Airflow. The compatibility check is its first query validation. Expect <code>spark_write_trino_read: passed</code> and amount <code>12.34</code>. The remaining cells explore the resulting lakehouse.</p>
 </div>
 </div>
 </div>
@@ -8753,16 +8753,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>26/11/18 22:32:36 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+<pre>26/11/19 00:54:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
 Setting default log level to "WARN".
 To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
 </pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>[Stage 0:&gt;                                                          (0 + 1) / 1]                                                                                </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8774,7 +8768,7 @@ To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLeve
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>[Stage 3:=============================&gt;                             (2 + 2) / 4]</pre>
+<pre>[Stage 3:==============&gt;                                            (1 + 3) / 4]</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8792,7 +8786,7 @@ To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLeve
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>[Stage 14:==============&gt;                                           (1 + 3) / 4]                                                                                </pre>
+<pre>                                                                                </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8804,13 +8798,13 @@ To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLeve
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>                                                                                </pre>
+<pre>[Stage 15:==============&gt;                                           (1 + 3) / 4]                                                                                </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>[Stage 19:==============&gt;                                           (1 + 3) / 4]                                                                                </pre>
+<pre>[Stage 19:&gt;                                                         (0 + 4) / 4]                                                                                </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -9051,6 +9045,12 @@ To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLeve
 </tbody>
 </table>
 </div>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>[Stage 7:&gt;                                                          (0 + 4) / 4]</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -9458,9 +9458,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="5.-Traditional-warehouse-and-ELT-%E2%80%94-PDF-pp.-16%E2%80%9318">5. Traditional warehouse and ELT — PDF pp. 16–18<a class="anchor-link" href="#5.-Traditional-warehouse-and-ELT-%E2%80%94-PDF-pp.-16%E2%80%9318">¶</a></h2><p>The warehouse branch starts from the same completed bronze files, not the lakehouse's silver output. Python bulk-loads restricted <code>staging.raw_lines</code>. dbt independently parses and models the data using PostgreSQL SQL.</p>
-<p>Every build gets a new <code>candidate_&lt;id&gt;</code> schema. dbt builds typed staging models, dimensions, facts and aggregates there, then runs uniqueness, relationship, row-accounting and amount-reconciliation tests. This deliberately avoids changing the published interface while tests are still running.</p>
-<p>After cross-engine validation, a PostgreSQL transaction updates the stable <code>core</code> and <code>mart</code> views and writes audit evidence. This implements ELT: load source-shaped data, then transform inside the analytical database. ETL would move more of those transformations before loading. Both still need contracts and replay rules.</p>
+<h2 id="5.-Trino-validation-and-publication">5. Trino validation and publication<a class="anchor-link" href="#5.-Trino-validation-and-publication">¶</a></h2><p>Trino validates the Iceberg snapshots created by Spark. It checks full row accounting, unique source-row IDs, the fact's signed decimal total and customer relationships. Trino recomputes daily groups from the pinned invoice facts and compares them with the materialized gold aggregate.</p>
+<p>After validation, the release records the Iceberg snapshot IDs. <code>lake.published.fact_invoice_line</code> pins the released fact snapshot, and <code>lake.published.daily_sales</code> groups that same view for Superset.</p>
 </div>
 </div>
 </div>
@@ -9472,10 +9471,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">warehouse_candidate</span><span class="o">=</span><span class="n">release</span><span class="p">[</span><span class="s1">'warehouse'</span><span class="p">]</span>
-<span class="n">display</span><span class="p">({</span><span class="s1">'loaded'</span><span class="p">:</span><span class="n">full_run</span><span class="p">[</span><span class="s1">'input_rows'</span><span class="p">],</span><span class="o">**</span><span class="n">warehouse_candidate</span><span class="p">})</span>
-<span class="n">display</span><span class="p">(</span><span class="n">Code</span><span class="p">((</span><span class="n">ROOT</span><span class="o">/</span><span class="s1">'dbt/models/staging/stg_typed.sql'</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(),</span><span class="n">language</span><span class="o">=</span><span class="s1">'sql'</span><span class="p">))</span>
-<span class="n">display</span><span class="p">(</span><span class="n">Code</span><span class="p">((</span><span class="n">ROOT</span><span class="o">/</span><span class="s1">'dbt/models/marts/daily_sales.sql'</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(),</span><span class="n">language</span><span class="o">=</span><span class="s1">'sql'</span><span class="p">))</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">Code</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span><span class="p">(</span><span class="n">pipeline</span><span class="o">.</span><span class="n">validate</span><span class="p">),</span><span class="n">language</span><span class="o">=</span><span class="s1">'python'</span><span class="p">))</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Code</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span><span class="p">(</span><span class="n">lakehouse</span><span class="o">.</span><span class="n">publish_views</span><span class="p">),</span><span class="n">language</span><span class="o">=</span><span class="s1">'python'</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -9487,20 +9484,6 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'loaded': 1067371,
- 'build_schema': 'candidate_6cd0871b5088',
- 'input_run_id': 'retail-bcbe73b35f5b-full',
- 'accepted_rows': 1067366,
- 'quarantined_rows': 5,
- 'net_sales': '19445926.708000',
- 'dbt_build': 'passed',
- 'dbt_models': 7,
- 'dbt_tests_passed': 8}</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
 <style>pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -9576,21 +9559,36 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .output_html .vg { color: #19177C } /* Name.Variable.Global */
 .output_html .vi { color: #19177C } /* Name.Variable.Instance */
 .output_html .vm { color: #19177C } /* Name.Variable.Magic */
-.output_html .il { color: #666 } /* Literal.Number.Integer.Long */</style><div class="highlight"><pre><span></span><span class="k">with</span><span class="w"> </span><span class="n">parsed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="p">(</span>
-<span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="p">,</span>
-<span class="w">   </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">pg_input_is_valid</span><span class="p">(</span><span class="n">quantity</span><span class="p">,</span><span class="w"> </span><span class="s1">'numeric'</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">quantity</span><span class="p">::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="n">q</span><span class="p">,</span>
-<span class="w">   </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">pg_input_is_valid</span><span class="p">(</span><span class="n">unit_price</span><span class="p">,</span><span class="w"> </span><span class="s1">'numeric'</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">unit_price</span><span class="p">::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="n">p</span><span class="p">,</span>
-<span class="w">   </span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">pg_input_is_valid</span><span class="p">(</span><span class="n">invoice_date</span><span class="p">,</span><span class="w"> </span><span class="s1">'timestamp'</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">invoice_date</span><span class="p">::</span><span class="k">timestamp</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="n">local_ts</span>
-<span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="err">{{</span><span class="w"> </span><span class="k">source</span><span class="p">(</span><span class="s1">'retail_input'</span><span class="p">,</span><span class="w"> </span><span class="s1">'raw_lines'</span><span class="p">)</span><span class="w"> </span><span class="err">}}</span>
-<span class="p">)</span>
-<span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="k">case</span>
-<span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">invoice</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="k">trim</span><span class="p">(</span><span class="n">invoice</span><span class="p">)</span><span class="o">=</span><span class="s1">''</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">'missing_invoice'</span>
-<span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">stock_code</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="k">trim</span><span class="p">(</span><span class="n">stock_code</span><span class="p">)</span><span class="o">=</span><span class="s1">''</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">'missing_stock_code'</span>
-<span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">local_ts</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">'invalid_date'</span>
-<span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="n">q</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="n">q</span><span class="o">&lt;&gt;</span><span class="n">floor</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="k">abs</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1000000000</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">'invalid_quantity'</span>
-<span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="n">p</span><span class="o">&lt;</span><span class="mi">0</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="s1">'invalid_price'</span>
-<span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">null</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="n">rejection_reason</span>
-<span class="k">from</span><span class="w"> </span><span class="n">parsed</span>
+.output_html .il { color: #666 } /* Literal.Number.Integer.Long */</style><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="n">lake</span><span class="p">):</span>
+    <span class="n">gold</span><span class="p">,</span> <span class="n">silver</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'gold'</span><span class="p">,</span> <span class="s1">'silver'</span><span class="p">)</span> <span class="k">if</span> <span class="n">lake</span><span class="p">[</span><span class="s1">'scope'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'full'</span> <span class="k">else</span> <span class="p">(</span><span class="s1">'sample_gold'</span><span class="p">,</span> <span class="s1">'sample_silver'</span><span class="p">)</span>
+    <span class="n">fact</span> <span class="o">=</span> <span class="n">lakehouse</span><span class="o">.</span><span class="n">snapshot_relation</span><span class="p">(</span><span class="n">lake</span><span class="p">,</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">gold</span><span class="si">}</span><span class="s1">.fact_invoice_line'</span><span class="p">)</span>
+    <span class="n">customer</span> <span class="o">=</span> <span class="n">lakehouse</span><span class="o">.</span><span class="n">snapshot_relation</span><span class="p">(</span><span class="n">lake</span><span class="p">,</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">gold</span><span class="si">}</span><span class="s1">.dim_customer'</span><span class="p">)</span>
+    <span class="n">rejected</span> <span class="o">=</span> <span class="n">lakehouse</span><span class="o">.</span><span class="n">snapshot_relation</span><span class="p">(</span><span class="n">lake</span><span class="p">,</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">silver</span><span class="si">}</span><span class="s1">.quarantine'</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">trino_connection</span><span class="p">())</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">'''SELECT count(*), count(DISTINCT source_row_id), sum(line_amount) FROM </span><span class="si">{</span><span class="n">fact</span><span class="si">}</span><span class="s1">'''</span><span class="p">)</span>
+        <span class="n">accepted</span><span class="p">,</span> <span class="n">distinct_rows</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">'SELECT count(*) FROM </span><span class="si">{</span><span class="n">rejected</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+        <span class="n">quarantined</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">'''SELECT count(*) FROM </span><span class="si">{</span><span class="n">fact</span><span class="si">}</span><span class="s1"> f LEFT JOIN </span><span class="si">{</span><span class="n">customer</span><span class="si">}</span><span class="s1"> d</span>
+<span class="s1">                       ON f.customer_key=d.customer_key WHERE d.customer_key IS NULL'''</span><span class="p">)</span>
+        <span class="n">orphan_customers</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">lakehouse</span><span class="o">.</span><span class="n">daily_sales_query</span><span class="p">(</span><span class="n">fact</span><span class="p">))</span>
+        <span class="n">fact_groups</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="n">checks</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'source_row_accounting'</span><span class="p">:</span> <span class="p">(</span><span class="n">accepted</span> <span class="o">==</span> <span class="n">lake</span><span class="p">[</span><span class="s1">'accepted_rows'</span><span class="p">]</span>
+                                  <span class="ow">and</span> <span class="n">quarantined</span> <span class="o">==</span> <span class="n">lake</span><span class="p">[</span><span class="s1">'quarantined_rows'</span><span class="p">]</span>
+                                  <span class="ow">and</span> <span class="n">accepted</span> <span class="o">+</span> <span class="n">quarantined</span> <span class="o">==</span> <span class="n">lake</span><span class="p">[</span><span class="s1">'input_rows'</span><span class="p">]),</span>
+        <span class="s1">'unique_source_rows'</span><span class="p">:</span> <span class="n">accepted</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">accepted</span> <span class="o">==</span> <span class="n">distinct_rows</span><span class="p">,</span>
+        <span class="s1">'fact_decimal_total'</span><span class="p">:</span> <span class="n">total</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">total</span> <span class="o">==</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">lake</span><span class="p">[</span><span class="s1">'totals'</span><span class="p">][</span><span class="s1">'net_sales'</span><span class="p">]),</span>
+        <span class="s1">'customer_keys_resolve'</span><span class="p">:</span> <span class="n">orphan_customers</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">checks</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="k">raise</span> <span class="n">QualityGateError</span><span class="p">(</span><span class="s1">'Failed Iceberg validation: '</span><span class="o">+</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ok</span> <span class="ow">in</span> <span class="n">checks</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">))</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">compare_daily</span><span class="p">(</span><span class="n">lakehouse</span><span class="o">.</span><span class="n">trino_daily</span><span class="p">(</span><span class="n">lake</span><span class="p">),</span> <span class="n">fact_groups</span><span class="p">)</span>
+    <span class="n">checks</span><span class="p">[</span><span class="s1">'daily_totals_match_fact'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">'input_run_id'</span><span class="p">:</span> <span class="n">lake</span><span class="p">[</span><span class="s1">'input_run_id'</span><span class="p">],</span> <span class="s1">'passed'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">'checks'</span><span class="p">:</span> <span class="n">checks</span><span class="p">,</span>
+            <span class="s1">'daily_groups_checked'</span><span class="p">:</span> <span class="n">groups</span><span class="p">,</span> <span class="s1">'signed_net_sales'</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">total</span><span class="p">)}</span>
 </pre></div>
 </div>
 </div>
@@ -9671,11 +9669,20 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .output_html .vg { color: #19177C } /* Name.Variable.Global */
 .output_html .vi { color: #19177C } /* Name.Variable.Instance */
 .output_html .vm { color: #19177C } /* Name.Variable.Magic */
-.output_html .il { color: #666 } /* Literal.Number.Integer.Long */</style><div class="highlight"><pre><span></span><span class="k">select</span><span class="w"> </span><span class="n">invoice_date</span><span class="p">,</span><span class="n">currency</span><span class="p">,</span><span class="n">country</span><span class="p">,</span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">line_count</span><span class="p">,</span>
-<span class="w"> </span><span class="k">sum</span><span class="p">(</span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">line_amount</span><span class="o">&gt;</span><span class="mi">0</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="n">is_cancellation</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">line_amount</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">end</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">38</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="n">gross_sales</span><span class="p">,</span>
-<span class="w"> </span><span class="k">sum</span><span class="p">(</span><span class="k">case</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">line_amount</span><span class="o">&lt;</span><span class="mi">0</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="o">-</span><span class="n">line_amount</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">end</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">38</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="n">credits</span><span class="p">,</span>
-<span class="w"> </span><span class="k">sum</span><span class="p">(</span><span class="n">line_amount</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">38</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="n">net_sales</span>
-<span class="k">from</span><span class="w"> </span><span class="err">{{</span><span class="w"> </span><span class="k">ref</span><span class="p">(</span><span class="s1">'fact_invoice_line'</span><span class="p">)</span><span class="w"> </span><span class="err">}}</span><span class="w"> </span><span class="k">group</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">invoice_date</span><span class="p">,</span><span class="n">currency</span><span class="p">,</span><span class="n">country</span>
+.output_html .il { color: #666 } /* Literal.Number.Integer.Long */</style><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">publish_views</span><span class="p">(</span><span class="n">lake</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The invoice fact view is the single snapshot pointer for both BI datasets."""</span>
+    <span class="n">fact</span> <span class="o">=</span> <span class="n">snapshot_relation</span><span class="p">(</span><span class="n">lake</span><span class="p">,</span> <span class="s1">'gold.fact_invoice_line'</span><span class="p">)</span>
+    <span class="n">fact_ddl</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'CREATE OR REPLACE VIEW lake.published.fact_invoice_line SECURITY DEFINER AS SELECT * FROM </span><span class="si">{</span><span class="n">fact</span><span class="si">}</span><span class="s1">'</span>
+    <span class="n">daily_ddl</span> <span class="o">=</span> <span class="s1">'CREATE OR REPLACE VIEW lake.published.daily_sales SECURITY DEFINER AS '</span> <span class="o">+</span> <span class="n">daily_sales_query</span><span class="p">(</span><span class="s1">'lake.published.fact_invoice_line'</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">trino_connection</span><span class="p">())</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">'CREATE SCHEMA IF NOT EXISTS lake.published'</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"SELECT table_name FROM lake.information_schema.views WHERE table_schema='published'"</span><span class="p">)</span>
+        <span class="n">has_fact</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'fact_invoice_line'</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">())</span>
+        <span class="c1"># On release updates, leave the old fact live until the daily view definition is ready.</span>
+        <span class="n">commands</span> <span class="o">=</span> <span class="p">(</span><span class="n">daily_ddl</span><span class="p">,</span> <span class="n">fact_ddl</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_fact</span> <span class="k">else</span> <span class="p">(</span><span class="n">fact_ddl</span><span class="p">,</span> <span class="n">daily_ddl</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -9688,8 +9695,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Compare-independently-produced-products-before-publication">Compare independently produced products before publication<a class="anchor-link" href="#Compare-independently-produced-products-before-publication">¶</a></h3><p>The comparison checks every daily date/currency/country group, row counts, gross sales, credits and signed net sales. Decimal equality is exact. A match of grand totals alone would be weaker: two errors could cancel each other.</p>
-<p>The release records Iceberg snapshot IDs and the successful warehouse build schema. Consumers can pin Iceberg reads to those snapshots. PostgreSQL publication is atomic within its transaction; the combined lakehouse/warehouse release is recorded explicitly, rather than claiming a cross-system distributed transaction.</p>
+<h3 id="Read-and-verify-the-published-snapshots">Read and verify the published snapshots<a class="anchor-link" href="#Read-and-verify-the-published-snapshots">¶</a></h3><p>The comparison checks every daily date/currency/country group, row counts, gross sales, credits and signed net sales. Decimal equality is exact. A match of grand totals alone would be weaker: two errors could cancel each other.</p>
+<p>The release manifest and the BI query paths expose the validated release. Superset stays on its last published fact while Spark builds newer snapshots.</p>
 </div>
 </div>
 </div>
@@ -9701,11 +9708,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">reconciliation</span><span class="o">=</span><span class="n">pipeline</span><span class="o">.</span><span class="n">reconcile</span><span class="p">(</span><span class="n">lake_candidate</span><span class="p">,</span><span class="n">warehouse_candidate</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">reconciliation</span><span class="o">==</span><span class="n">release</span><span class="p">[</span><span class="s1">'reconciliation'</span><span class="p">]</span>
-<span class="n">display</span><span class="p">(</span><span class="n">reconciliation</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">validation</span><span class="o">=</span><span class="n">pipeline</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">lake_candidate</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">validation</span><span class="o">==</span><span class="n">release</span><span class="p">[</span><span class="s1">'validation'</span><span class="p">]</span>
+<span class="n">display</span><span class="p">(</span><span class="n">validation</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">'Published release:'</span><span class="p">,</span><span class="n">release</span><span class="p">[</span><span class="s1">'release_id'</span><span class="p">])</span>
-<span class="n">display</span><span class="p">(</span><span class="n">warehouse</span><span class="o">.</span><span class="n">negative_access_test</span><span class="p">())</span>
+<span class="n">display</span><span class="p">(</span><span class="n">lakehouse</span><span class="o">.</span><span class="n">verify_bi_access</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -9718,24 +9725,32 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'daily_groups_checked': 3237,
- 'exact_decimal_match': True,
- 'accepted_rows': 1067366}</pre>
+<pre>{'input_run_id': 'retail-bcbe73b35f5b-full',
+ 'passed': True,
+ 'checks': {'source_row_accounting': True,
+  'unique_source_rows': True,
+  'fact_decimal_total': True,
+  'customer_keys_resolve': True,
+  'daily_totals_match_fact': True},
+ 'daily_groups_checked': 3237,
+ 'signed_net_sales': '19445926.708000'}</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Published release: 20261118T223315847280Z
+<pre>Published release: 20261119T005456107941Z
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'staging.raw_lines': 'denied as expected',
- 'core.transactions': 'denied as expected',
- 'core.typed_lines': 'denied as expected'}</pre>
+<pre>{'rows': 1067366,
+ 'signed_net_sales': '19445926.708000',
+ 'unpublished_access_denied': ['silver.quarantine',
+  'silver.transactions',
+  'gold.fact_invoice_line']}</pre>
 </div>
 </div>
 </div>
@@ -9760,11 +9775,6 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <td>Iceberg</td>
 <td>Shared Spark/Trino tables and snapshots</td>
 <td>Delta for a Spark/Databricks estate; Hudi for a justified update-heavy design</td>
-</tr>
-<tr>
-<td>PostgreSQL warehouse</td>
-<td>Dimensional SQL products and transactional publication</td>
-<td>MPP/managed warehouse after measured concurrency or scan limits</td>
 </tr>
 <tr>
 <td>Separate Trino engine</td>
@@ -9844,8 +9854,8 @@ Name: signed_net_sales_GBP, dtype: float64</pre>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Editable-Superset-dashboard">Editable Superset dashboard<a class="anchor-link" href="#Editable-Superset-dashboard">¶</a></h3><p>In PowerShell run <code>.\scripts\lab.cmd bi</code> to start Superset or <code>.\scripts\lab.cmd platform</code> to start and provision the complete stack. The following cell, when <code>RUN_BI=True</code>, creates the read-only warehouse connection and provisions the overview, product/customer, and credit/coverage dashboards.</p>
-<p>To enable the cell interactively, set <code>RUN_BI=True</code> above and rerun this cell. Sign in at <a href="http://localhost:18088">http://localhost:18088</a> with <code>admin</code> and the local <code>SUPERSET_ADMIN_PASSWORD</code>. Do not display that password in the notebook. The dashboard reads stable <code>mart</code> views; it is refreshed by later approved releases.</p>
+<h3 id="Editable-Superset-dashboard">Editable Superset dashboard<a class="anchor-link" href="#Editable-Superset-dashboard">¶</a></h3><p>In PowerShell run <code>.\scripts\lab.cmd bi</code> to start Superset or <code>.\scripts\lab.cmd platform</code> to start and provision the complete stack. When <code>RUN_BI=True</code>, this cell configures the read-only Trino connection and provisions the overview, product/customer, and credit/coverage dashboards.</p>
+<p>To enable the cell interactively, set <code>RUN_BI=True</code> above. Sign in at <a href="http://localhost:18088">http://localhost:18088</a> with <code>admin</code> and the local <code>SUPERSET_ADMIN_PASSWORD</code>. The dashboards read the <code>lake.published</code> views and follow later approved releases.</p>
 </div>
 </div>
 </div>
@@ -9874,7 +9884,7 @@ Name: signed_net_sales_GBP, dtype: float64</pre>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'release_id': '20261118T223315847280Z',
+<pre>{'release_id': '20261119T005456107941Z',
  'accepted_rows': 1067366,
  'dashboards': [{'dashboard_id': 2,
    'slug': 'retail-overview',
@@ -9889,7 +9899,7 @@ Name: signed_net_sales_GBP, dtype: float64</pre>
    'url': 'http://localhost:18088/superset/dashboard/retail-returns-coverage/',
    'chart_ids': [19, 20, 21, 22, 23, 24, 25, 26]}],
  'chart_count': 23,
- 'warehouse_connection': 'Read-only bi_reader over published mart views'}</pre>
+ 'connection': 'Trino lake.published with the read-only lake_bi identity'}</pre>
 </div>
 </div>
 </div>
@@ -10084,7 +10094,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="Real-CDC-extension">Real CDC extension<a class="anchor-link" href="#Real-CDC-extension">¶</a></h3><p>Start <code>.\scripts\lab.cmd cdc</code> in PowerShell. This adds a single-node Kafka broker and Debezium Connect. PostgreSQL was initialized with <code>wal_level=logical</code>; the connector uses a dedicated replication role and an explicitly created publication of <code>source_demo.public.customers</code>.</p>
-<p>A separately published heartbeat table advances offsets when customer traffic is idle. This prevents warehouse writes in other databases from silently accumulating retained source WAL. Once CDC is enabled, the launcher resumes its consumer with the core lab. Monitor slot progress as well as connector process health.</p>
+<p>A published heartbeat advances offsets when customer traffic is idle. The launcher resumes the connector with the core lab. Monitor slot progress, retained WAL and connector process health.</p>
 <p>Set <code>RUN_CDC=True</code> to run the following cells. Steps: seed synthetic customers → snapshot with Debezium → update/insert/delete source rows → poll Kafka into immutable bronze JSONL → persist the completed manifest → commit consumer offsets → merge retained events into Iceberg silver state.</p>
 <p>The lab uses one Kafka partition. Integer source LSN and Kafka offset form the documented source-order/tie policy within that bounded setup. Do not generalize it into a total order across arbitrary topics, partitions and transactions. A long-running production consumer requires durable scheduling/checkpoint ownership and source WAL retention monitoring; Airflow should not launch one task per event.</p>
 </div>
@@ -10142,19 +10152,31 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>{'events': 3,
- 'path': '/opt/lab/data/bronze/cdc/0936c46ffdec4c60a76495b1bcaad7ca',
+ 'path': '/opt/lab/data/bronze/cdc/544a4817e9924cd5b7b3f53c95c56b88',
  'bronze_before_offset_commit': True}</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>[Stage 35:&gt;                                                         (0 + 4) / 4]</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>                                                                                </pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'unique_source_events': 8,
+<pre>{'unique_source_events': 11,
  'state': [{'id': 1,
    'name': 'SYNTHETIC customer one',
    'segment': 'loyal',
-   'source_lsn': 16561162440,
-   'kafka_offset': 6,
+   'source_lsn': 17599449968,
+   'kafka_offset': 10,
    'is_deleted': False},
   {'id': 2,
    'name': 'SYNTHETIC customer two',
@@ -10165,8 +10187,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
   {'id': 3,
    'name': 'SYNTHETIC customer three',
    'segment': 'new',
-   'source_lsn': 16561165368,
-   'kafka_offset': 8,
+   'source_lsn': 17599451328,
+   'kafka_offset': 12,
    'is_deleted': True}],
  'delete_tombstone_retained': True,
  'ordering_scope': 'Single Kafka partition in this lab; integer source LSN with offset tie-break. Not a universal multi-partition order.'}</pre>
@@ -10188,9 +10210,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="8.-Warehouse-history-and-maintenance-%E2%80%94-PDF-pp.-26%E2%80%9328">8. Warehouse history and maintenance — PDF pp. 26–28<a class="anchor-link" href="#8.-Warehouse-history-and-maintenance-%E2%80%94-PDF-pp.-26%E2%80%9328">¶</a></h2><p>SCD Type 2 retains versions of selected descriptive attributes. A surrogate key identifies a version; a natural key identifies the real entity. Half-open validity intervals <code>[valid_from, valid_to)</code> avoid double-matching a fact exactly at a change boundary.</p>
-<p>The exercise creates <code>learning.customer_history</code> from synthetic customer segments and checks that the boundary resolves to exactly one row and that no versions overlap. It does not invent segment history for UCI customers.</p>
-<p>For performance, inspect <code>EXPLAIN (ANALYZE, BUFFERS)</code> before adding indexes. PostgreSQL sequential scans can be appropriate for broad analytical aggregates. Partitioning is justified by pruning/retention needs, not by a rule that every fact table must be partitioned.</p>
+<h2 id="8.-Customer-history-and-Trino-query-plans">8. Customer history and Trino query plans<a class="anchor-link" href="#8.-Customer-history-and-Trino-query-plans">¶</a></h2><p>SCD Type 2 retains versions of selected descriptive attributes. A surrogate key identifies a version; a natural key identifies the real entity. Half-open validity intervals <code>[valid_from, valid_to)</code> avoid double-matching a fact exactly at a change boundary.</p>
+<p>The synthetic exercise checks that the boundary matches one version and that the intervals do not overlap. For query performance, inspect Trino's <code>EXPLAIN ANALYZE</code> to see the aggregation and the Iceberg scan work. Measure pruning and scan cost before choosing partitioning or compaction.</p>
 </div>
 </div>
 </div>
@@ -10203,9 +10224,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">exercises</span><span class="o">.</span><span class="n">scd2_experiment</span><span class="p">())</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">psycopg</span>
-<span class="k">with</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="o">**</span><span class="n">pg_kwargs</span><span class="p">())</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
-    <span class="n">plan</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">'EXPLAIN (ANALYZE, BUFFERS) SELECT country,sum(net_sales) FROM mart.daily_sales GROUP BY country'</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">closing</span>
+<span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">trino_connection</span><span class="p">(</span><span class="s1">'lake_bi'</span><span class="p">,</span><span class="s1">'published'</span><span class="p">))</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+    <span class="n">cursor</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">'EXPLAIN ANALYZE SELECT country,sum(net_sales) FROM lake.published.daily_sales GROUP BY country'</span><span class="p">)</span>
+    <span class="n">plan</span><span class="o">=</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">plan</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -10227,16 +10250,83 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>HashAggregate  (cost=80.56..81.09 rows=43 width=41) (actual time=0.686..0.692 rows=43 loops=1)
-  Group Key: daily_sales.country
-  Batches: 1  Memory Usage: 48kB
-  Buffers: shared hit=32
-  -&gt;  Seq Scan on daily_sales  (cost=0.00..64.37 rows=3237 width=16) (actual time=0.007..0.136 rows=3237 loops=1)
-        Buffers: shared hit=32
-Planning:
-  Buffers: shared hit=49
-Planning Time: 0.146 ms
-Execution Time: 0.748 ms
+<pre>Trino version: 484
+Queued: 288.85us, Analysis: 25.27ms, Planning: 34.37ms, Execution: 209.56ms, Finishing: 0.00ns
+Fragment 1 [HASH]
+    CPU: 7.17ms, Scheduled: 7.34ms, Blocked 1.81s (Input: 899.98ms, Output: 0.00ns), Input: 442 rows (11.36kB); per task: avg.: 442.00 std.dev.: 0.00, Output: 43 rows (1.26kB)
+    Peak Memory: 4.12kB, Tasks count: 1; per task: max: 4.12kB
+    Output layout: [country, sum_6]
+    Output partitioning: SINGLE []
+    Aggregate[type = FINAL, keys = [country]]
+    │   Layout: [country:varchar, sum_6:decimal(38,6)]
+    │   Estimates: {rows: ? (?), cpu: ?, memory: ?, network: 0B}
+    │   CPU: 3.00ms (1.95%), Scheduled: 3.00ms (1.57%), Blocked: 0.00ns (0.00%), Output: 43 rows (1.26kB)
+    │   Input avg.: 27.63 rows, Input std.dev.: 61.71%
+    │   sum_6 := sum(sum_7)
+    └─ LocalExchange[partitioning = HASH, arguments = [country::varchar]]
+       │   Layout: [country:varchar, sum_7:varbinary]
+       │   Estimates: {rows: ? (?), cpu: ?, memory: 0B, network: 0B}
+       │   CPU: 1.00ms (0.65%), Scheduled: 1.00ms (0.52%), Blocked: 907.00ms (26.51%), Output: 442 rows (11.36kB)
+       │   Input avg.: 27.63 rows, Input std.dev.: 193.79%
+       └─ RemoteSource[sourceFragmentIds = [2]]
+              Layout: [country:varchar, sum_7:varbinary]
+              CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 900.00ms (26.31%), Output: 442 rows (11.36kB)
+              Input avg.: 27.63 rows, Input std.dev.: 193.79%
+
+Fragment 2 [HASH]
+    CPU: 16.22ms, Scheduled: 16.60ms, Blocked 1.61s (Input: 808.40ms, Output: 0.00ns), Input: 3330 rows (130.75kB); per task: avg.: 3330.00 std.dev.: 0.00, Output: 442 rows (11.36kB)
+    Peak Memory: 14.62kB, Tasks count: 1; per task: max: 14.62kB
+    Output layout: [country, sum_7]
+    Output partitioning: HASH [country]
+    Aggregate[type = PARTIAL, keys = [country]]
+    │   Layout: [country:varchar, sum_7:varbinary]
+    │   CPU: 7.00ms (4.55%), Scheduled: 7.00ms (3.66%), Blocked: 0.00ns (0.00%), Output: 442 rows (11.36kB)
+    │   Input avg.: 202.31 rows, Input std.dev.: 5.74%
+    │   sum_7 := sum(sum_3)
+    └─ Project[]
+       │   Layout: [country:varchar, sum_3:decimal(38,6)]
+       │   Estimates: {rows: ? (?), cpu: ?, memory: 0B, network: 0B}
+       │   CPU: 1.00ms (0.65%), Scheduled: 1.00ms (0.52%), Blocked: 0.00ns (0.00%), Output: 3237 rows (95.66kB)
+       │   Input avg.: 202.31 rows, Input std.dev.: 5.74%
+       └─ Aggregate[type = FINAL, keys = [invoice_date, currency, country]]
+          │   Layout: [invoice_date:date, currency:varchar, country:varchar, sum_3:decimal(38,6)]
+          │   Estimates: {rows: ? (?), cpu: 71.32M, memory: ?, network: 0B}
+          │   CPU: 4.00ms (2.60%), Scheduled: 4.00ms (2.09%), Blocked: 0.00ns (0.00%), Output: 3237 rows (136.76kB)
+          │   Input avg.: 208.13 rows, Input std.dev.: 6.11%
+          │   sum_3 := sum(sum_8)
+          └─ LocalExchange[partitioning = HASH, arguments = [invoice_date::date, currency::varchar, country::varchar]]
+             │   Layout: [invoice_date:date, currency:varchar, country:varchar, sum_8:varbinary]
+             │   Estimates: {rows: 1067366 (71.32MB), cpu: 71.32M, memory: 0B, network: 0B}
+             │   CPU: 3.00ms (1.95%), Scheduled: 4.00ms (2.09%), Blocked: 806.00ms (23.56%), Output: 3330 rows (130.75kB)
+             │   Input avg.: 208.13 rows, Input std.dev.: 174.73%
+             └─ RemoteSource[sourceFragmentIds = [3]]
+                    Layout: [invoice_date:date, currency:varchar, country:varchar, sum_8:varbinary]
+                    CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 808.00ms (23.62%), Output: 3330 rows (130.75kB)
+                    Input avg.: 208.13 rows, Input std.dev.: 174.73%
+
+Fragment 3 [SOURCE]
+    CPU: 136.02ms, Scheduled: 170.92ms, Blocked 0.00ns (Input: 0.00ns, Output: 0.00ns), Input: 1067366 rows (51.90MB); per task: avg.: 1067366.00 std.dev.: 0.00, Output: 3330 rows (130.75kB)
+    Peak Memory: 4.85MB, Tasks count: 1; per task: max: 4.85MB
+    Output layout: [invoice_date, currency, country, sum_8]
+    Output partitioning: HASH [invoice_date, currency, country]
+    Aggregate[type = PARTIAL, keys = [invoice_date, currency, country]]
+    │   Layout: [invoice_date:date, currency:varchar, country:varchar, sum_8:varbinary]
+    │   Estimates: {rows: 1067366 (71.32MB), cpu: ?, memory: ?, network: ?}
+    │   CPU: 86.00ms (55.84%), Scheduled: 96.00ms (50.26%), Blocked: 0.00ns (0.00%), Output: 3330 rows (130.75kB)
+    │   Input avg.: 266841.50 rows, Input std.dev.: 5.29%
+    │   sum_8 := sum(line_amount)
+    └─ TableScan[table = lake:gold.fact_invoice_line$data@8748797599417835518]
+           Layout: [invoice_date:date, country:varchar, currency:varchar, line_amount:decimal(28,6)]
+           Estimates: {rows: 1067366 (32.64MB), cpu: 32.64M, memory: 0B, network: 0B}
+           CPU: 49.00ms (31.82%), Scheduled: 75.00ms (39.27%), Blocked: 0.00ns (0.00%), Output: 1067366 rows (51.90MB)
+           Input avg.: 266841.50 rows, Input std.dev.: 5.29%
+           line_amount := 13:line_amount:decimal(28,6)
+           currency := 11:currency:varchar
+           invoice_date := 8:invoice_date:date
+           country := 10:country:varchar
+           Input: 1067366 rows (51.90MB), Physical input: 2.38MB, Physical input time: 32.20ms, Splits: 4, Splits generation wait time: 2.23ms
+
+
 </pre>
 </div>
 </div>
@@ -10282,13 +10372,6 @@ Execution Time: 0.748 ms
 <td>Managed Spark</td>
 </tr>
 <tr>
-<td>Warehouse</td>
-<td>PostgreSQL</td>
-<td>Redshift</td>
-<td>Fabric Warehouse</td>
-<td>BigQuery</td>
-</tr>
-<tr>
 <td>SQL/BI</td>
 <td>Trino + Superset</td>
 <td>Athena + BI</td>
@@ -10304,8 +10387,8 @@ Execution Time: 0.748 ms
 </tr>
 </tbody>
 </table>
-<p>These are alternative mappings, not a combined shopping list. Fabric Lakehouse's SQL endpoint is not the same item as Fabric Warehouse. Iceberg catalog ownership, format versions, reader/writer permissions, region/edition support and maintenance ownership must be verified for each managed path.</p>
-<p><strong>Exercise:</strong> design a warehouse-first Azure/Fabric version of this lab. Name which local components disappear, which capabilities remain, and which business definitions stay unchanged. No cloud resources are provisioned by this notebook.</p>
+<p>Verify Iceberg catalog ownership, format versions, reader/writer permissions, region support and maintenance ownership for a managed implementation.</p>
+<p><strong>Exercise:</strong> map the lakehouse to one managed cloud and explain how its query endpoint would publish the validated release.</p>
 </div>
 </div>
 </div>
@@ -10317,7 +10400,7 @@ Execution Time: 0.748 ms
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="10.-Cost,-complexity-and-measured-performance-%E2%80%94-PDF-pp.-32%E2%80%9333">10. Cost, complexity and measured performance — PDF pp. 32–33<a class="anchor-link" href="#10.-Cost,-complexity-and-measured-performance-%E2%80%94-PDF-pp.-32%E2%80%9333">¶</a></h2><p>TCO includes storage, ingestion, transforms, query/capacity, metadata, network, backups, BI/licenses and operating labor. A free package does not have zero operating cost. The following arithmetic uses <strong>illustrative user-supplied tariffs</strong>, not live cloud quotes.</p>
-<p>Measure cold/warm latency separately. This local exercise times repeated queries against already built products. Results describe the laptop lab, not a general lakehouse-versus-warehouse winner. Record input scope and query shape with every measurement.</p>
+<p>Measure cold and warm latency separately. Record input scope and query shape with each measurement.</p>
 </div>
 </div>
 </div>
@@ -10357,13 +10440,13 @@ Execution Time: 0.748 ms
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'trino_seconds': [0.07593200900009833,
-  0.054586530000051425,
-  0.057471518000056676,
-  0.05743463899989365,
-  0.055611156999930245],
- 'p50': 0.05743463899989365,
- 'p95': 0.07223991080009,
+<pre>{'trino_seconds': [0.0451781560004747,
+  0.0449750320003659,
+  0.04463974700047402,
+  0.14120421100051317,
+  0.044668100999842864],
+ 'p50': 0.0449750320003659,
+ 'p95': 0.12199900000050545,
  'scope': 'full'}</pre>
 </div>
 </div>
@@ -10376,8 +10459,8 @@ Execution Time: 0.748 ms
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="11.-Production-operating-model:-demonstrate-the-boundaries-%E2%80%94-PDF-pp.-34%E2%80%9336">11. Production operating model: demonstrate the boundaries — PDF pp. 34–36<a class="anchor-link" href="#11.-Production-operating-model:-demonstrate-the-boundaries-%E2%80%94-PDF-pp.-34%E2%80%9336">¶</a></h2><h3 id="Roles-and-publication">Roles and publication<a class="anchor-link" href="#Roles-and-publication">¶</a></h3><p>The notebook connection is a lab administrator because it bootstraps schemas and catalogs. The BI warehouse connection is a separate <code>bi_reader</code> role with access to published marts; tests verify that staging/core access is denied. Spark/Trino and local S3 are in a trusted educational network. This lab does not claim full multi-tenant catalog/bucket authorization or enterprise TLS/SSO; see <code>docs/production-boundaries.md</code> for the concrete changes needed.</p>
-<p>The publication failure experiment below creates an isolated candidate daily-sales table, changes one amount, then calls the real cross-engine reconciliation function. The error must block publication and leave the current release manifest unchanged. The temporary failure schema is removed after the check.</p>
+<h2 id="11.-Production-operating-model:-demonstrate-the-boundaries-%E2%80%94-PDF-pp.-34%E2%80%9336">11. Production operating model: demonstrate the boundaries — PDF pp. 34–36<a class="anchor-link" href="#11.-Production-operating-model:-demonstrate-the-boundaries-%E2%80%94-PDF-pp.-34%E2%80%9336">¶</a></h2><h3 id="Roles-and-publication">Roles and publication<a class="anchor-link" href="#Roles-and-publication">¶</a></h3><p>The notebook identity bootstraps schemas and validates snapshots. Superset's <code>lake_bi</code> identity reads the published views. Permission checks verify that it is denied direct access to silver and gold data. See <code>docs/production-boundaries.md</code> for the deployment's trust model.</p>
+<p>The failure exercise reads the active Iceberg aggregate, modifies one amount in memory and runs the actual group comparison. A difference raises before publication.</p>
 </div>
 </div>
 </div>
@@ -10391,7 +10474,7 @@ Execution Time: 0.748 ms
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lab.operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">publication_gate_experiment</span>
 <span class="n">display</span><span class="p">(</span><span class="n">publication_gate_experiment</span><span class="p">())</span>
-<span class="n">display</span><span class="p">(</span><span class="n">warehouse</span><span class="o">.</span><span class="n">negative_access_test</span><span class="p">())</span>
+<span class="n">display</span><span class="p">(</span><span class="n">lakehouse</span><span class="o">.</span><span class="n">verify_bi_access</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -10404,15 +10487,17 @@ Execution Time: 0.748 ms
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'injected_bad_total': 'blocked', 'last_valid_release_unchanged': True}</pre>
+<pre>{'modified_group_total': 'blocked', 'release_pointer_preserved': True}</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'staging.raw_lines': 'denied as expected',
- 'core.transactions': 'denied as expected',
- 'core.typed_lines': 'denied as expected'}</pre>
+<pre>{'rows': 1067366,
+ 'signed_net_sales': '19445926.708000',
+ 'unpublished_access_denied': ['silver.quarantine',
+  'silver.transactions',
+  'gold.fact_invoice_line']}</pre>
 </div>
 </div>
 </div>
@@ -10426,9 +10511,8 @@ Execution Time: 0.748 ms
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="Scheduling,-backfills-and-observability">Scheduling, backfills and observability<a class="anchor-link" href="#Scheduling,-backfills-and-observability">¶</a></h3><p>Start <code>.\scripts\lab.cmd orchestration</code>. Airflow's <code>retail_learning_pipeline</code> submits a full-workbook run to the notebook service, validates its result and retries failures. The DAG delegates the full build to one task. Its stage timings are exported to Prometheus.</p>
 <p>Start <code>.\scripts\lab.cmd monitoring</code> for Grafana's release and quality, services and catalog, and CDC dashboards. Prometheus records full-input coverage, reconciled groups, duration by stage, dependencies, and replication health.</p>
-<p>Open <a href="http://localhost:8585">OpenMetadata</a> and search for <strong>Retail Sales</strong>. Follow the bronze lineage into the dbt and Iceberg branches, then open the warehouse <code>daily_sales</code> test result to see the count of reconciled groups. The release catalog sync reads real asset metadata and pipeline evidence. See <code>docs/openmetadata.md</code> for dashboards, startup and verification commands.</p>
-<h3 id="Backup-and-restore-drill">Backup and restore drill<a class="anchor-link" href="#Backup-and-restore-drill">¶</a></h3><p>In PowerShell run <code>.\scripts\lab.cmd restore</code>. It takes a logical warehouse backup, restores into a newly named database, and compares published fact row count and exact monetary total. The backup and evidence are copied to <code>artifacts/</code>. It does not overwrite the working warehouse.</p>
-<p>Snapshot retention is not backup. A complete lakehouse disaster-recovery plan must preserve object data, Iceberg metadata, catalog pointers, credentials/configuration and coherent release references. Recovery from total object-volume loss is a documented follow-up boundary, not a test falsely claimed by the warehouse restore drill.</p>
+<p>Open <a href="http://localhost:8585">OpenMetadata</a> and search for <strong>Retail Sales</strong>. Follow the workbook into bronze, silver, gold and the published Trino views. The gold <code>daily_sales</code> quality result contains the group comparison. See <code>docs/openmetadata.md</code> for dashboard links and verification.</p>
+<h3 id="Read-a-retained-release">Read a retained release<a class="anchor-link" href="#Read-a-retained-release">¶</a></h3><p>Verify the data in an older release by querying its saved Iceberg snapshot IDs. Full recovery also depends on retained files, catalog metadata and the deployment configuration.</p>
 </div>
 </div>
 </div>
@@ -10437,14 +10521,13 @@ Execution Time: 0.748 ms
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [23]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [19]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">restore_evidence</span><span class="o">=</span><span class="n">ARTIFACTS</span><span class="o">/</span><span class="s1">'restore-verification.json'</span>
-<span class="k">if</span> <span class="n">restore_evidence</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-    <span class="n">display</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">restore_evidence</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">'utf-8-sig'</span><span class="p">)))</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">'Restore drill not yet recorded. Run scripts/lab.cmd restore in PowerShell.'</span><span class="p">)</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lab.operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_pinned_release</span>
+<span class="n">older</span><span class="o">=</span><span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">DATA</span><span class="o">/</span><span class="s1">'releases'</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'*.json'</span><span class="p">),</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stem</span> <span class="o">&lt;</span> <span class="n">release</span><span class="p">[</span><span class="s1">'release_id'</span><span class="p">]]</span>
+<span class="n">retained</span><span class="o">=</span><span class="nb">next</span><span class="p">((</span><span class="n">item</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">older</span> <span class="k">if</span> <span class="p">(</span><span class="n">item</span><span class="o">:=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()))</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'engine'</span><span class="p">)</span><span class="o">==</span><span class="s1">'lakehouse'</span><span class="p">),</span><span class="n">release</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">verify_pinned_release</span><span class="p">(</span><span class="n">retained</span><span class="p">))</span>
 <span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([{</span><span class="s1">'table'</span><span class="p">:</span><span class="n">k</span><span class="p">,</span><span class="s1">'published_snapshot'</span><span class="p">:</span><span class="n">v</span><span class="p">}</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">release</span><span class="p">[</span><span class="s1">'lakehouse'</span><span class="p">][</span><span class="s1">'snapshots'</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()]))</span>
 </pre></div>
 </div>
@@ -10458,10 +10541,17 @@ Execution Time: 0.748 ms
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'warehouse_restore': 'passed',
- 'target_database': 'restore_verify_1794779799',
- 'count_and_decimal_total': '1067366|19445926.708000',
- 'seconds': 122}</pre>
+<pre>{'release_id': '20261119T005301740345Z',
+ 'retained_snapshots': 'readable',
+ 'input_run_id': 'retail-bcbe73b35f5b-full',
+ 'passed': True,
+ 'checks': {'source_row_accounting': True,
+  'unique_source_rows': True,
+  'fact_decimal_total': True,
+  'customer_keys_resolve': True,
+  'daily_totals_match_fact': True},
+ 'daily_groups_checked': 3237,
+ 'signed_net_sales': '19445926.708000'}</pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -10493,37 +10583,37 @@ Execution Time: 0.748 ms
 <tr>
 <th>0</th>
 <td>silver.transactions</td>
-<td>8429386569932067464</td>
+<td>9151330431168289901</td>
 </tr>
 <tr>
 <th>1</th>
 <td>silver.quarantine</td>
-<td>2294530133410390111</td>
+<td>3692524628595136195</td>
 </tr>
 <tr>
 <th>2</th>
 <td>gold.fact_invoice_line</td>
-<td>402072961436385066</td>
+<td>8748797599417835518</td>
 </tr>
 <tr>
 <th>3</th>
 <td>gold.daily_sales</td>
-<td>7371657694171925873</td>
+<td>8262016262452982138</td>
 </tr>
 <tr>
 <th>4</th>
 <td>gold.dim_customer</td>
-<td>777393440934550800</td>
+<td>3880197449801150938</td>
 </tr>
 <tr>
 <th>5</th>
 <td>gold.dim_product</td>
-<td>2465744302784513692</td>
+<td>7570236883927887232</td>
 </tr>
 <tr>
 <th>6</th>
 <td>gold.dim_date</td>
-<td>8670485046002909596</td>
+<td>8573748887437778950</td>
 </tr>
 </tbody>
 </table>
@@ -10540,7 +10630,7 @@ Execution Time: 0.748 ms
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="Maintenance-exercise">Maintenance exercise<a class="anchor-link" href="#Maintenance-exercise">¶</a></h3><p>Inspect <code>lake.silver.transactions.files</code> and <code>.snapshots</code>. Compare file counts to query planning time. A lab with a few large files may not need compaction. A production compaction operation must consider concurrent writers and retention requirements. Never delete arbitrary old Parquet/metadata files from an Iceberg table directory.</p>
-<p>Suggested recovery objectives for this experiment: zero loss of the frozen input snapshot; restore the small warehouse within 15 minutes. Measure the actual restore time and state whether that target was met. These are lab targets, not an SLA for a real business.</p>
+<p>Before expiration, identify every snapshot used by the published views and retained releases.</p>
 </div>
 </div>
 </div>
@@ -10628,50 +10718,50 @@ Execution Time: 0.748 ms
 <tbody>
 <tr>
 <th>0</th>
+<td>2026-11-19 00:54:49.444</td>
+<td>9151330431168289901</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<th>1</th>
+<td>2026-11-19 00:52:54.872</td>
+<td>2604895021052975815</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<th>2</th>
+<td>2026-11-19 00:34:57.282</td>
+<td>2143598374116364738</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<th>3</th>
+<td>2026-11-19 00:00:18.157</td>
+<td>225899307951504606</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<th>4</th>
 <td>2026-11-18 22:32:48.428</td>
 <td>8429386569932067464</td>
 <td>overwrite</td>
 </tr>
 <tr>
-<th>1</th>
+<th>5</th>
 <td>2026-11-18 22:20:39.059</td>
 <td>4854491832527731062</td>
 <td>overwrite</td>
 </tr>
 <tr>
-<th>2</th>
+<th>6</th>
 <td>2026-11-18 22:13:36.501</td>
 <td>7311062149832622536</td>
 <td>overwrite</td>
 </tr>
 <tr>
-<th>3</th>
+<th>7</th>
 <td>2026-11-18 22:05:42.702</td>
 <td>4992692901938603391</td>
-<td>overwrite</td>
-</tr>
-<tr>
-<th>4</th>
-<td>2026-11-18 14:42:11.415</td>
-<td>524996209777499340</td>
-<td>overwrite</td>
-</tr>
-<tr>
-<th>5</th>
-<td>2026-11-18 14:36:28.066</td>
-<td>5387289669924991430</td>
-<td>overwrite</td>
-</tr>
-<tr>
-<th>6</th>
-<td>2026-11-18 14:06:14.260</td>
-<td>9120846913402111750</td>
-<td>overwrite</td>
-</tr>
-<tr>
-<th>7</th>
-<td>2026-11-18 14:03:57.878</td>
-<td>3970819812065566887</td>
 <td>overwrite</td>
 </tr>
 </tbody>
@@ -10740,18 +10830,18 @@ Execution Time: 0.748 ms
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="13.-Make-an-architecture-decision-from-evidence-%E2%80%94-PDF-pp.-38%E2%80%9339">13. Make an architecture decision from evidence — PDF pp. 38–39<a class="anchor-link" href="#13.-Make-an-architecture-decision-from-evidence-%E2%80%94-PDF-pp.-38%E2%80%9339">¶</a></h2><p>Complete an architecture decision record with: consumers/products, grain and metric definitions, freshness/concurrency requirements, recovery/access constraints, measured workload, operating ownership, chosen option, alternatives, and revisit triggers.</p>
-<p><strong>For this dataset alone</strong>, a PostgreSQL warehouse or a small local SQL engine could deliver the analytical questions. The larger Iceberg/Spark/Trino branch is installed here to learn the report's component interactions, not because one million retail rows require distributed infrastructure.</p>
+<p>The lab uses Iceberg, Spark and Trino to demonstrate how a writer, table catalog and query engine work together on the same data.</p>
 <p><strong>Capstone exercises</strong></p>
 <ol>
 <li>Trace one <code>source_row_id</code> from workbook sheet/row through bronze, silver and the published fact.</li>
 <li>Replay the identical completed input. Prove row counts and grouped decimal totals do not change; snapshot IDs are allowed to change.</li>
 <li>Add a malformed quantity to a separate synthetic batch. Show its quarantine reason and reconcile accepted + rejected rows.</li>
-<li>Change a cancellation inclusion rule. Update both transformations and the contract, then explain the expected metric movement.</li>
+<li>Change a cancellation rule in the transformation and independent fact rollup. Update the contract and explain the expected metric movement.</li>
 <li>Inject an old update after a newer delete and show the tombstone prevents resurrection.</li>
-<li>Restore the warehouse into a fresh database and verify counts, totals and recovery time.</li>
-<li>Choose a warehouse-first design for a small SQL team, then name the measured trigger that would justify Trino, streaming or a managed MPP engine.</li>
+<li>Compare the row counts and totals in two retained Iceberg releases.</li>
+<li>Define a query latency or freshness threshold that would justify scaling the lakehouse.</li>
 </ol>
-<h3 id="What-completion-means">What completion means<a class="anchor-link" href="#What-completion-means">¶</a></h3><p>The core lab is complete when the Spark/Trino compatibility gate, full-input accounting, dbt checks, grouped reconciliation, publication failure gate, negative BI permissions, replay/delete exercises and restart/run-all execution pass. BI, CDC, orchestration, monitoring and restore have their own evidence files. Read actual evidence; a configuration file alone is not evidence that a service was installed or tested.</p>
+<h3 id="What-completion-means">What completion means<a class="anchor-link" href="#What-completion-means">¶</a></h3><p>Check the run evidence for compatibility, row accounting, Iceberg integrity, daily totals, the publication gate, BI access and CDC replay. BI, orchestration, monitoring and the catalog report their own live results.</p>
 </div>
 </div>
 </div>
@@ -10766,7 +10856,7 @@ Execution Time: 0.748 ms
 <div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span><span class="n">timezone</span>
 <span class="n">evidence</span><span class="o">=</span><span class="p">{</span><span class="s1">'executed_at'</span><span class="p">:</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span><span class="s1">'input_scope'</span><span class="p">:</span><span class="n">manifest</span><span class="p">[</span><span class="s1">'scope'</span><span class="p">],</span><span class="s1">'input_rows'</span><span class="p">:</span><span class="n">manifest</span><span class="p">[</span><span class="s1">'rows'</span><span class="p">],</span>
  <span class="s1">'accepted_rows'</span><span class="p">:</span><span class="n">lake_candidate</span><span class="p">[</span><span class="s1">'accepted_rows'</span><span class="p">],</span><span class="s1">'quarantined_rows'</span><span class="p">:</span><span class="n">lake_candidate</span><span class="p">[</span><span class="s1">'quarantined_rows'</span><span class="p">],</span>
- <span class="s1">'compatibility'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'cross_engine_reconciliation'</span><span class="p">:</span><span class="n">reconciliation</span><span class="p">,</span><span class="s1">'schema_evolution_and_time_travel'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span>
+ <span class="s1">'compatibility'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'iceberg_validation'</span><span class="p">:</span><span class="n">validation</span><span class="p">,</span><span class="s1">'schema_evolution_and_time_travel'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span>
  <span class="s1">'negative_BI_permissions'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'publication_failure_gate'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'replay_and_tombstones'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span>
  <span class="s1">'SCD2_intervals'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'temporal_features'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span><span class="s1">'permission_aware_retrieval'</span><span class="p">:</span><span class="s1">'passed'</span><span class="p">,</span>
  <span class="s1">'BI_executed_in_this_notebook'</span><span class="p">:</span><span class="n">RUN_BI</span><span class="p">,</span><span class="s1">'CDC_executed_in_this_notebook'</span><span class="p">:</span><span class="n">RUN_CDC</span><span class="p">}</span>
@@ -10785,15 +10875,21 @@ Execution Time: 0.748 ms
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>{'executed_at': '2026-11-18T22:34:14.240261+00:00',
+<pre>{'executed_at': '2026-11-19T00:55:53.066055+00:00',
  'input_scope': 'full',
  'input_rows': 1067371,
  'accepted_rows': 1067366,
  'quarantined_rows': 5,
  'compatibility': 'passed',
- 'cross_engine_reconciliation': {'daily_groups_checked': 3237,
-  'exact_decimal_match': True,
-  'accepted_rows': 1067366},
+ 'iceberg_validation': {'input_run_id': 'retail-bcbe73b35f5b-full',
+  'passed': True,
+  'checks': {'source_row_accounting': True,
+   'unique_source_rows': True,
+   'fact_decimal_total': True,
+   'customer_keys_resolve': True,
+   'daily_totals_match_fact': True},
+  'daily_groups_checked': 3237,
+  'signed_net_sales': '19445926.708000'},
  'schema_evolution_and_time_travel': 'passed',
  'negative_BI_permissions': 'passed',
  'publication_failure_gate': 'passed',
@@ -10823,7 +10919,6 @@ Execution Time: 0.748 ms
 <li>Iceberg JDBC catalog: <a href="https://iceberg.apache.org/docs/latest/jdbc/">https://iceberg.apache.org/docs/latest/jdbc/</a></li>
 <li>Trino catalogs: <a href="https://trino.io/docs/current/object-storage/metastores.html">https://trino.io/docs/current/object-storage/metastores.html</a></li>
 <li>SeaweedFS: <a href="https://github.com/seaweedfs/seaweedfs">https://github.com/seaweedfs/seaweedfs</a></li>
-<li>dbt PostgreSQL: <a href="https://docs.getdbt.com/docs/core/connect-data-platform/postgres-setup">https://docs.getdbt.com/docs/core/connect-data-platform/postgres-setup</a></li>
 <li>Airflow Docker: <a href="https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/">https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/</a></li>
 <li>Debezium PostgreSQL: <a href="https://debezium.io/documentation/reference/stable/connectors/postgresql.html">https://debezium.io/documentation/reference/stable/connectors/postgresql.html</a></li>
 <li>Superset: <a href="https://superset.apache.org/docs/">https://superset.apache.org/docs/</a></li>

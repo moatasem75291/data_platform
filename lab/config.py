@@ -7,11 +7,11 @@ DATA = ROOT/'data'
 ARTIFACTS = ROOT/'artifacts'
 for p in [DATA, ARTIFACTS]: p.mkdir(parents=True, exist_ok=True)
 
-def pg_kwargs(database=None, reader=False):
+def pg_kwargs(database=None):
     return dict(host=os.getenv('PGHOST','localhost'), port=int(os.getenv('PGPORT','15432')),
-                user='bi_reader' if reader else os.getenv('PGUSER','lab_admin'),
-                password=os.environ['READER_PASSWORD' if reader else 'PGPASSWORD'] if reader or 'PGPASSWORD' in os.environ else os.environ['POSTGRES_PASSWORD'],
-                dbname=database or 'warehouse')
+                user=os.getenv('PGUSER','lab_admin'),
+                password=os.environ['PGPASSWORD'] if 'PGPASSWORD' in os.environ else os.environ['POSTGRES_PASSWORD'],
+                dbname=database or os.getenv('PGDATABASE', 'iceberg_catalog'))
 
 def s3_client():
     import boto3
@@ -21,7 +21,7 @@ def s3_client():
         aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY',os.environ.get('S3_SECRET_KEY')),
         region_name='us-east-1',config=Config(request_checksum_calculation='when_required',response_checksum_validation='when_required'))
 
-def trino_connection():
+def trino_connection(user='learning', schema='gold'):
     import trino
     return trino.dbapi.connect(host=os.getenv('TRINO_HOST','localhost'),port=int(os.getenv('TRINO_PORT','18080')),
-        user='learning',catalog='lake',schema='gold',http_scheme='http')
+        user=user,catalog='lake',schema=schema,http_scheme='http')

@@ -50,7 +50,10 @@ def refresh_catalog_after_runs():
         time.sleep(30)
         if not READY_FILE.is_file():
             continue
-        attempt = read_json(PIPELINE_STATE, {}).get('attempt', {})
+        state = read_json(PIPELINE_STATE, {})
+        if state.get('engine') != 'lakehouse':
+            continue
+        attempt = state.get('attempt', {})
         catalog = read_json(CATALOG_STATE, {})
         finished = attempt.get('finished_at')
         if not finished or catalog.get('source_attempt_finished_at') == finished:

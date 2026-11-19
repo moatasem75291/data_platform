@@ -18,11 +18,14 @@ def verify():
     evidence = read_json(CATALOG_STATE)
     assert evidence['result'] == 'success' and not evidence['missing_optional_sources']
     assert evidence['release_id'] == release['release_id']
-    expected_tables = {evidence['warehouse_daily_sales'], evidence['iceberg_daily_sales']}
+    expected_tables = {evidence['published_daily_sales'], evidence['iceberg_daily_sales']}
     with local_api() as api:
+        source_databases = api.get('databases', {'service': 'RetailPostgres'})['data']
+        assert {database['name'] for database in source_databases} == {'source_demo'}
         indexed = set()
         for _ in range(8):
-            result = api.get('search/query', {'q': 'daily_sales', 'index': 'table_search_index', 'size': 25})
+            result = api.get('search/query', {'q': 'daily_sales', 'index': 'table_search_index',
+                                              'size': 25, 'deleted': 'false'})
             indexed = {item['_source']['fullyQualifiedName'] for item in result['hits']['hits']}
             if expected_tables <= indexed:
                 break
@@ -33,7 +36,10 @@ def verify():
             table = api.by_name('tables', name, {'fields': 'owners,tags,domains,dataProducts'})
             assert any(item['name'] == 'RetailDataStewards' for item in table['owners'])
             assert any(item['name'] == 'RetailAnalytics' for item in table['domains'])
-            assert any(item['tagFQN'] == 'RetailAccess.Published' for item in table['tags'])
+            expected_tag = 'Published' if name == evidence['published_daily_sales'] else 'Restricted'
+            access_tags = {item['tagFQN'] for item in table['tags']
+                           if item['tagFQN'] in ('RetailAccess.Published', 'RetailAccess.Restricted')}
+            assert access_tags == {f'RetailAccess.{expected_tag}'}
             assert any(item['name'] == 'RetailSales' for item in table['dataProducts'])
             lineage = api.get(f"lineage/table/{table['id']}", {'upstreamDepth': 3, 'downstreamDepth': 2})
             assert lineage['upstreamEdges'] and lineage['downstreamEdges'], name

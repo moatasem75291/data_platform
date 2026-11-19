@@ -8,7 +8,7 @@ if env_file.exists():
     values = dict(line.split('=', 1) for line in env_file.read_text().splitlines() if '=' in line and not line.startswith('#'))
 else:
     values = {k: secrets.token_hex(24) for k in (
-        'POSTGRES_PASSWORD', 'READER_PASSWORD', 'S3_SECRET_KEY', 'JUPYTER_TOKEN',
+        'POSTGRES_PASSWORD', 'S3_SECRET_KEY', 'JUPYTER_TOKEN',
         'SUPERSET_SECRET_KEY', 'SUPERSET_ADMIN_PASSWORD', 'GRAFANA_PASSWORD')}
     values['S3_ACCESS_KEY'] = 'learning-lab'
     env_file.write_text('\n'.join(f'{k}={v}' for k,v in values.items())+'\n', encoding='utf-8')
@@ -44,10 +44,5 @@ s3.path-style-access=true
 s3.aws-access-key={values['S3_ACCESS_KEY']}
 s3.aws-secret-key={values['S3_SECRET_KEY']}
 iceberg.register-table-procedure.enabled=true
-''')
-(ROOT/'infra/trino/postgres.properties').write_text(f'''connector.name=postgresql
-connection-url=jdbc:postgresql://postgres:5432/warehouse
-connection-user=bi_reader
-connection-password={values['READER_PASSWORD']}
 ''')
 print('Configured credentials, Trino catalogs and S3. Existing credentials retained.')

@@ -60,7 +60,7 @@ def start_platform():
         wait_http(endpoint)
     release_file = ROOT/'data/releases/current.json'
     release = json.loads(release_file.read_text()) if release_file.is_file() else {}
-    if release.get('scope') != 'full' or 'dbt_tests_passed' not in release.get('warehouse', {}):
+    if release.get('engine') != 'lakehouse' or not release.get('validation', {}).get('passed'):
         in_notebook('-m', 'lab.cli', 'run', '--full')
     in_notebook('-m', 'lab.bi')
     if not cdc_available() or not (ROOT/'artifacts/cdc-verification.json').is_file():
@@ -70,7 +70,7 @@ def start_platform():
 
 
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('action',choices=['start','platform','stop','status','sample','full','notebook','notebook-full','notebook-all','bi','bi-refresh','cdc','orchestration','monitoring','metadata','metadata-sync','verify','lock','restore','open'])
+parser.add_argument('action',choices=['start','platform','stop','status','sample','full','notebook','notebook-full','notebook-all','bi','bi-refresh','cdc','orchestration','monitoring','metadata','metadata-sync','verify','lock','open'])
 args=parser.parse_args()
 if args.action=='start':
     if (ROOT/'data/cdc-enabled').exists():compose('--profile','cdc','up','-d','--build',*CORE,'kafka','connect')
@@ -95,12 +95,6 @@ elif args.action=='verify':compose('exec','-T','notebook','python','-m','lab.cli
 elif args.action=='lock':
     compose('exec','-T','notebook','python','scripts/lock-runtime.py')
     subprocess.run([sys.executable,str(ROOT/'scripts/lock-images.py')],cwd=ROOT,check=True)
-elif args.action=='restore':
-    response=compose('exec','-T','postgres','bash','/lab-scripts/restore-drill.sh',capture_output=True,text=True)
-    result=json.loads(response.stdout.strip().splitlines()[-1])
-    (ROOT/'artifacts/restore-verification.json').write_text(json.dumps(result,indent=2))
-    compose('cp','postgres:/tmp/learning-warehouse.dump','artifacts/warehouse.dump')
-    print(json.dumps(result,indent=2))
 elif args.action=='open':
     values=dict(line.split('=',1) for line in (ROOT/'.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
     webbrowser.open('http://localhost:18888/lab/tree/data_platform_architecture_lab.ipynb?token='+values['JUPYTER_TOKEN'])

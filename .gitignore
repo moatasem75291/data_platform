@@ -1,6 +1,7 @@
 .env
 infra/seaweedfs.json
 infra/trino/*.properties
+!infra/trino/access-control.properties
 data/
 artifacts/*.json
 artifacts/*.sql

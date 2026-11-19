@@ -1,5 +1,5 @@
 {
-  "title": "Retail Pipeline | Releases and Quality",
+  "title": "Retail Lakehouse | Releases and Quality",
   "uid": "learning-pipeline",
   "schemaVersion": 39,
   "version": 1,
@@ -21,7 +21,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_input_rows{scope=\"full\"}",
+          "expr": "lab_input_rows{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -63,7 +63,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_accepted_rows{scope=\"full\"}",
+          "expr": "lab_accepted_rows{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -105,7 +105,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_quarantined_rows{scope=\"full\"}",
+          "expr": "lab_quarantined_rows{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -141,13 +141,13 @@
       }
     },
     {
-      "title": "Exact-match groups",
+      "title": "Daily groups validated",
       "description": "",
       "type": "stat",
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_reconciled_groups{scope=\"full\"}",
+          "expr": "lab_validated_daily_groups{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -189,7 +189,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_pipeline_last_attempt_success",
+          "expr": "lab_pipeline_last_attempt_success{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -245,7 +245,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_pipeline_running",
+          "expr": "lab_pipeline_running{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -295,13 +295,13 @@
       }
     },
     {
-      "title": "dbt checks passed",
+      "title": "Iceberg checks passed",
       "description": "",
       "type": "stat",
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_dbt_tests_passed{scope=\"full\"}",
+          "expr": "lab_iceberg_checks_passed{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -343,7 +343,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "time() - lab_publication_timestamp_seconds{scope=\"full\"}",
+          "expr": "time() - lab_publication_timestamp_seconds{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -402,7 +402,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_pipeline_duration_seconds{scope=\"full\"}",
+          "expr": "lab_pipeline_duration_seconds{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "Full execution duration",
           "refId": "A",
           "instant": false,
@@ -447,7 +447,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_pipeline_stage_duration_seconds",
+          "expr": "lab_pipeline_stage_duration_seconds{engine=\"lakehouse\"}",
           "legendFormat": "{{stage}}",
           "refId": "A",
           "instant": true,
@@ -491,7 +491,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_pipeline_attempts_total",
+          "expr": "lab_pipeline_attempts_total{engine=\"lakehouse\"}",
           "legendFormat": "{{result}}",
           "refId": "A",
           "instant": false,
@@ -536,7 +536,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "100 * lab_quarantined_rows{scope=\"full\"} / lab_input_rows{scope=\"full\"}",
+          "expr": "100 * lab_quarantined_rows{scope=\"full\",engine=\"lakehouse\"} / lab_input_rows{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "Quarantine rate",
           "refId": "A",
           "instant": false,
@@ -581,7 +581,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "lab_input_rows{scope=\"full\"} - lab_accepted_rows{scope=\"full\"} - lab_quarantined_rows{scope=\"full\"}",
+          "expr": "lab_input_rows{scope=\"full\",engine=\"lakehouse\"} - lab_accepted_rows{scope=\"full\",engine=\"lakehouse\"} - lab_quarantined_rows{scope=\"full\",engine=\"lakehouse\"}",
           "legendFormat": "Unaccounted input rows",
           "refId": "A",
           "instant": false,

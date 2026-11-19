@@ -333,7 +333,7 @@
       "datasource": null,
       "targets": [
         {
-          "expr": "clamp_min(lab_publication_timestamp_seconds{scope=\"full\"} - lab_catalog_release_timestamp_seconds{scope=\"full\"}, 0)",
+          "expr": "clamp_min(lab_publication_timestamp_seconds{scope=\"full\",engine=\"lakehouse\"} - lab_catalog_release_timestamp_seconds{scope=\"full\",engine=\"lakehouse\"}, 0)",
           "legendFormat": "Release version gap",
           "refId": "A",
           "instant": false,

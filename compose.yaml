@@ -30,15 +30,13 @@ services:
     environment:
       POSTGRES_USER: lab_admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/configure.py first}
-      POSTGRES_DB: warehouse
-      READER_PASSWORD: ${READER_PASSWORD}
+      POSTGRES_DB: iceberg_catalog
     ports: ["127.0.0.1:15432:5432"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres:/docker-entrypoint-initdb.d:ro
-      - ./scripts:/lab-scripts:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lab_admin -d warehouse"]
+      test: ["CMD-SHELL", "pg_isready -U lab_admin -d iceberg_catalog"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -60,7 +58,7 @@ services:
       PGPORT: "5432"
       PGUSER: lab_admin
       PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: warehouse
+      PGDATABASE: iceberg_catalog
       S3_ENDPOINT: http://seaweedfs:8333
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
@@ -69,7 +67,6 @@ services:
       TRINO_PORT: "8080"
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
       PIPELINE_API_TOKEN: ${PIPELINE_API_TOKEN}
-      READER_PASSWORD: ${READER_PASSWORD}
       SPARK_LOCAL_IP: "127.0.0.1"
       KAFKA_BOOTSTRAP: kafka:9092
       DEBEZIUM_URL: http://connect:8083
@@ -85,7 +82,8 @@ services:
     ports: ["127.0.0.1:18080:8080"]
     volumes:
       - ./infra/trino/iceberg.properties:/etc/trino/catalog/lake.properties:ro
-      - ./infra/trino/postgres.properties:/etc/trino/catalog/warehouse.properties:ro
+      - ./infra/trino/access-control.properties:/etc/trino/access-control.properties:ro
+      - ./infra/trino/access-rules.json:/etc/trino/access-rules.json:ro
       - ./infra/trino/jvm.config:/etc/trino/jvm.config:ro
     depends_on:
       postgres: {condition: service_healthy}
@@ -98,7 +96,6 @@ services:
       SUPERSET_CONFIG_PATH: /app/superset_config.py
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
-      PG_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./infra/superset_config.py:/app/superset_config.py:ro
       - ./scripts/superset-init.sh:/app/lab-init.sh:ro

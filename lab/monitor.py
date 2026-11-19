@@ -36,7 +36,7 @@ def probe(service):
     up = False
     try:
         if service == 'postgres':
-            with psycopg.connect(**pg_kwargs(reader=True), connect_timeout=3) as conn:
+            with psycopg.connect(**pg_kwargs('iceberg_catalog'), connect_timeout=3) as conn:
                 up = conn.execute('SELECT 1').fetchone()[0] == 1
         elif service == 'kafka':
             host, port = os.getenv('KAFKA_BOOTSTRAP', 'kafka:9092').split(':', 1)
@@ -104,8 +104,8 @@ def cdc_metrics(kafka_up, connect_up):
 
 
 def full_gauge(name, description, value):
-    family = GaugeMetricFamily(name, description, labels=['scope'])
-    family.add_metric(['full'], value)
+    family = GaugeMetricFamily(name, description, labels=['scope', 'engine'])
+    family.add_metric(['full', 'lakehouse'], value)
     return family
 
 
@@ -134,41 +134,42 @@ class LabMetrics:
             yield GaugeMetricFamily(f'lab_cdc_{name}', f'CDC {name.replace("_", " ")}', value=value)
 
         release = read_json(CURRENT_RELEASE, {})
-        if release.get('scope') == 'full' or release.get('lakehouse', {}).get('input_run_id', '').endswith('-full'):
+        if release.get('engine') == 'lakehouse' and release['scope'] == 'full':
             lake = release['lakehouse']
             values = {
                 'input_rows': lake['input_rows'], 'accepted_rows': lake['accepted_rows'],
                 'quarantined_rows': lake['quarantined_rows'],
                 'publication_timestamp_seconds': datetime.fromisoformat(release['published_at']).timestamp(),
-                'reconciled_groups': release['reconciliation']['daily_groups_checked'],
+                'validated_daily_groups': release['validation']['daily_groups_checked'],
+                'iceberg_checks_passed': sum(release['validation']['checks'].values()),
             }
-            if 'dbt_tests_passed' in release['warehouse']:
-                values['dbt_tests_passed'] = release['warehouse']['dbt_tests_passed']
             for name, value in values.items():
                 yield full_gauge(f'lab_{name}', f'Latest full release {name.replace("_", " ")}', value)
 
         state = read_json(PIPELINE_STATE, {})
+        if state.get('engine') != 'lakehouse':
+            state = {}
         attempt = state.get('attempt', {})
         active = attempt.get('result') == 'running'
-        yield GaugeMetricFamily('lab_pipeline_running', 'A full pipeline attempt is running', value=int(active))
+        yield full_gauge('lab_pipeline_running', 'A full pipeline attempt is running', int(active))
         if attempt.get('finished_at'):
-            yield GaugeMetricFamily('lab_pipeline_last_attempt_success', 'Last completed full run passed',
-                                    value=int(attempt['result'] == 'success'))
-        counters = CounterMetricFamily('lab_pipeline_attempts', 'Completed full run attempts', labels=['result'])
+            yield full_gauge('lab_pipeline_last_attempt_success', 'Last completed full run passed',
+                             int(attempt['result'] == 'success'))
+        counters = CounterMetricFamily('lab_pipeline_attempts', 'Completed full run attempts', labels=['result', 'engine'])
         for result, field in [('success', 'successful_runs'), ('failure', 'failed_runs')]:
-            counters.add_metric([result], state.get(field, 0))
+            counters.add_metric([result, 'lakehouse'], state.get(field, 0))
         yield counters
         last_release = state.get('last_success', {})
         seconds = last_release.get('seconds')
         if seconds is not None:
             yield full_gauge('lab_pipeline_duration_seconds', 'Last successful full run duration', seconds)
-            stages = GaugeMetricFamily('lab_pipeline_stage_duration_seconds', 'Last successful full run by stage', labels=['stage'])
+            stages = GaugeMetricFamily('lab_pipeline_stage_duration_seconds', 'Last successful full run by stage', labels=['stage', 'engine'])
             for stage, seconds in last_release['stage_seconds'].items():
-                stages.add_metric([stage], seconds)
+                stages.add_metric([stage, 'lakehouse'], seconds)
             yield stages
 
         catalog = read_json(CATALOG_STATE, {})
-        if catalog:
+        if catalog.get('engine') == 'lakehouse':
             yield GaugeMetricFamily('lab_catalog_last_sync_success', 'Most recent catalog sync succeeded',
                                     value=int(catalog['result'] == 'success'))
             if 'last_success_at' in catalog:

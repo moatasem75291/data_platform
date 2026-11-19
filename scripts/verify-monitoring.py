@@ -16,6 +16,7 @@ from lab.run_state import CURRENT_RELEASE, read_json, write_json
 
 PROMETHEUS = 'http://prometheus:9090'
 GRAFANA = 'http://grafana:3000'
+FULL = '{scope="full",engine="lakehouse"}'
 
 
 def get_json(base, path, session=requests, **params):
@@ -34,17 +35,17 @@ def query(expression, base=PROMETHEUS, session=requests):
 def verify():
     release = read_json(CURRENT_RELEASE)
     lake = release['lakehouse']
-    assert release['scope'] == 'full' and lake['input_run_id'].endswith('-full')
+    assert release['scope'] == 'full' and release['engine'] == 'lakehouse' and lake['input_run_id'].endswith('-full')
     checks = {'lab_input_rows': lake['input_rows'], 'lab_accepted_rows': lake['accepted_rows'],
               'lab_quarantined_rows': lake['quarantined_rows'],
-              'lab_reconciled_groups': release['reconciliation']['daily_groups_checked'],
-              'lab_dbt_tests_passed': release['warehouse']['dbt_tests_passed']}
+              'lab_validated_daily_groups': release['validation']['daily_groups_checked'],
+              'lab_iceberg_checks_passed': sum(release['validation']['checks'].values())}
     for metric, expected in checks.items():
-        assert float(query(metric+'{scope="full"}')[0]['value'][1]) == expected, metric
+        assert float(query(metric+FULL)[0]['value'][1]) == expected, metric
     services = {item['metric']['service']: int(item['value'][1]) for item in query('lab_service_up')}
     assert set(services) == {*URLS, 'postgres', 'kafka'} and all(services.values()), services
     assert float(query('lab_catalog_last_sync_success')[0]['value'][1]) == 1
-    assert float(query('lab_publication_timestamp_seconds{scope="full"} - lab_catalog_release_timestamp_seconds{scope="full"}')[0]['value'][1]) == 0
+    assert float(query(f'lab_publication_timestamp_seconds{FULL} - lab_catalog_release_timestamp_seconds{FULL}')[0]['value'][1]) == 0
     assert float(query('lab_cdc_connector_running')[0]['value'][1]) == 1
     assert float(query('time() - lab_cdc_heartbeat_timestamp_seconds')[0]['value'][1]) < 60
     assert len(prometheus_rules()) == 9

@@ -11,7 +11,10 @@ from .run_state import CURRENT_RELEASE, read_json, write_json
 
 SUPERSET_URL = os.getenv('SUPERSET_URL', 'http://superset:8088').rstrip('/')
 SUPERSET_PUBLIC_URL = os.getenv('SUPERSET_PUBLIC_URL', 'http://localhost:18088').rstrip('/')
-DATABASE_NAME = 'LearningWarehouse'
+DATABASE_NAME = 'LearningLakehouse'
+CATALOG = 'lake'
+SCHEMA = 'published'
+DATABASE_URI = 'trino://lake_bi@trino:8080/lake/published'
 DAILY = 'daily_sales'
 FACT = 'fact_invoice_line'
 
@@ -183,20 +186,20 @@ def dashboard_body(title, slug, rows, daily_id):
 
 def provision():
     release = read_json(CURRENT_RELEASE, {})
-    if not release.get('lakehouse', {}).get('input_run_id', '').endswith('-full'):
-        raise RuntimeError('Publish a full workbook release before building the retail dashboards.')
+    if release.get('engine') != 'lakehouse' or not release.get('validation', {}).get('passed'):
+        raise RuntimeError('Publish a validated full Iceberg release before building the retail dashboards.')
     with superset_session(write=True) as session:
         databases = listing(session, 'database', 'database_name', DATABASE_NAME)
         db_id = databases[0]['id'] if databases else save(session, 'database', {
             'database_name': DATABASE_NAME, 'expose_in_sqllab': True,
-            'sqlalchemy_uri': f"postgresql+psycopg2://bi_reader:{os.environ['READER_PASSWORD']}@postgres:5432/warehouse",
+            'sqlalchemy_uri': DATABASE_URI, 'allow_dml': False, 'allow_ctas': False, 'allow_cvas': False,
         })
         datasets = {}
         for table in (DAILY, FACT):
             matches = [item for item in listing(session, 'dataset', 'table_name', table)
-                       if item['database']['id'] == db_id and item['schema'] == 'mart']
+                       if item['database']['id'] == db_id and item['schema'] == SCHEMA and item['catalog'] == CATALOG]
             datasets[table] = matches[0]['id'] if matches else save(session, 'dataset', {
-                'database': db_id, 'schema': 'mart', 'table_name': table,
+                'database': db_id, 'catalog': CATALOG, 'schema': SCHEMA, 'table_name': table,
             })
         all_charts = request(session, 'GET', 'chart/', params={'q': '(page_size:100)'})['result']
         all_dashboards = request(session, 'GET', 'dashboard/', params={'q': '(page_size:100)'})['result']
@@ -223,7 +226,7 @@ def provision():
                         raise RuntimeError(f"Chart {spec['title']} returned no rows")
                     if spec['title'] == 'Total accepted invoice lines' and data[0][LINES['label']] != release['lakehouse']['accepted_rows']:
                         raise RuntimeError('Superset accepted-line KPI differs from the full release')
-                    if spec['title'] == 'Total signed net sales' and Decimal(str(data[0][NET['label']])) != Decimal(release['warehouse']['net_sales']):
+                    if spec['title'] == 'Total signed net sales' and Decimal(str(data[0][NET['label']])) != Decimal(release['validation']['signed_net_sales']):
                         raise RuntimeError('Superset signed-sales KPI differs from the full release')
                 chart_rows.append(ids)
             save(session, 'dashboard', dashboard_body(title, slug, chart_rows, datasets[DAILY]), dashboard_id)
@@ -232,7 +235,7 @@ def provision():
                             'chart_ids': [chart_id for row in chart_rows for chart_id, _ in row]})
     evidence = {'release_id': release['release_id'], 'accepted_rows': release['lakehouse']['accepted_rows'],
                 'dashboards': results, 'chart_count': sum(len(item['chart_ids']) for item in results),
-                'warehouse_connection': 'Read-only bi_reader over published mart views'}
+                'connection': 'Trino lake.published with the read-only lake_bi identity'}
     write_json(ARTIFACTS/'bi-verification.json', evidence)
     return evidence
 

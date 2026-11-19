@@ -11,15 +11,11 @@ from .config import pg_kwargs, s3_client, trino_connection
 from .monitor import CDC_TOPIC
 
 
-PG_TABLES = {
-    'staging': ('raw_lines',),
-    'core': ('typed_lines', 'transactions'),
-    'mart': ('fact_invoice_line', 'dim_customer', 'dim_product', 'dim_date', 'daily_sales'),
-}
 SOURCE_TABLES = {'public': ('customers', 'lab_heartbeat')}
 ICEBERG_TABLES = {
     'silver': ('transactions', 'quarantine', 'customer_state'),
-    'gold': PG_TABLES['mart'],
+    'gold': ('fact_invoice_line', 'dim_customer', 'dim_product', 'dim_date', 'daily_sales'),
+    'published': (bi.FACT, bi.DAILY),
 }
 GRAFANA_DASHBOARDS = ('learning-pipeline', 'learning-services', 'learning-cdc')
 
@@ -43,7 +39,7 @@ def iceberg_columns():
     with closing(trino_connection()) as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT table_schema, table_name, column_name, data_type, is_nullable
-                           FROM lake.information_schema.columns WHERE table_schema IN ('silver', 'gold')
+                           FROM lake.information_schema.columns WHERE table_schema IN ('silver', 'gold', 'published')
                            ORDER BY table_schema, table_name, ordinal_position""")
         return group_columns(cursor.fetchall(), ICEBERG_TABLES)
 

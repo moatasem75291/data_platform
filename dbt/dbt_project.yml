@@ -1,9 +1,0 @@
-name: retail_learning
-version: '1.0.0'
-config-version: 2
-profile: retail_learning
-model-paths: [models]
-test-paths: [tests]
-models:
-  retail_learning:
-    +materialized: table

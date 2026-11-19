@@ -1,0 +1,22 @@
+{
+  "catalogs": [
+    { "user": "lake_bi", "catalog": "lake|system", "allow": "read-only" },
+    { "user": "lake_bi", "allow": "none" },
+    { "allow": "all" }
+  ],
+  "schemas": [
+    { "user": "lake_bi", "owner": false },
+    { "owner": true }
+  ],
+  "tables": [
+    { "user": "lake_bi", "catalog": "lake", "schema": "published", "table": "daily_sales|fact_invoice_line", "privileges": ["SELECT"] },
+    { "user": "lake_bi", "catalog": "system", "schema": "jdbc|metadata", "privileges": ["SELECT"] },
+    { "user": "lake_bi", "privileges": [] },
+    { "privileges": ["SELECT", "INSERT", "DELETE", "UPDATE", "OWNERSHIP", "GRANT_SELECT"] }
+  ],
+  "impersonation": [
+    { "original_user": "lake_bi", "new_user": "lake_bi", "allow": true },
+    { "original_user": "lake_bi", "new_user": ".*", "allow": false },
+    { "original_user": ".*", "new_user": ".*", "allow": true }
+  ]
+}

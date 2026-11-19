@@ -1,13 +1,14 @@
 """Spark is the sole writer; Trino independently reads the shared Iceberg catalog."""
 import json, os
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
-from .config import DATA, ARTIFACTS, pg_kwargs, s3_client, trino_connection
+from .config import DATA, ARTIFACTS, pg_kwargs, trino_connection
 from .ingest import validate_manifest
 
 def spark_session():
     from pyspark.sql import SparkSession
-    pg=pg_kwargs()
+    pg=pg_kwargs('iceberg_catalog')
     builder=(SparkSession.builder.appName('data-platform-learning').master('local[4]')
       .config('spark.driver.memory','3g').config('spark.sql.shuffle.partitions','4')
       .config('spark.sql.session.timeZone','UTC')
@@ -110,8 +111,65 @@ def published_query(table='gold.daily_sales'):
 
 def trino_daily(release):
     table = 'gold.daily_sales' if release.get('scope', 'full') == 'full' else 'sample_gold.daily_sales'
-    snapshot = int(release['snapshots'][table])
-    with trino_connection() as conn:
+    with closing(trino_connection()) as conn:
         cur = conn.cursor()
-        cur.execute(f'SELECT invoice_date,currency,country,line_count,gross_sales,credits,net_sales FROM lake.{table} FOR VERSION AS OF {snapshot} ORDER BY 1,2,3')
+        cur.execute(f'SELECT invoice_date,currency,country,line_count,gross_sales,credits,net_sales FROM {snapshot_relation(release, table)} ORDER BY 1,2,3')
         return cur.fetchall()
+
+
+def snapshot_relation(lake, table):
+    return f"lake.{table} FOR VERSION AS OF {int(lake['snapshots'][table])}"
+
+
+def daily_from_fact(relation):
+    return f'''SELECT invoice_date, currency, country, count(*) AS line_count,
+        sum(line_amount) FILTER (WHERE line_amount > 0 AND NOT is_cancellation) AS positive_sales,
+        sum(-line_amount) FILTER (WHERE line_amount < 0) AS negative_amounts,
+        sum(line_amount) AS net_sales
+        FROM {relation} GROUP BY invoice_date, currency, country'''
+
+
+def daily_sales_query(relation):
+    return f'''SELECT invoice_date, currency, country, line_count,
+        coalesce(positive_sales, DECIMAL '0.000000') AS gross_sales,
+        coalesce(negative_amounts, DECIMAL '0.000000') AS credits, net_sales
+        FROM ({daily_from_fact(relation)}) AS daily'''
+
+
+def publish_views(lake):
+    """The invoice fact view is the single snapshot pointer for both BI datasets."""
+    fact = snapshot_relation(lake, 'gold.fact_invoice_line')
+    fact_ddl = f'CREATE OR REPLACE VIEW lake.published.fact_invoice_line SECURITY DEFINER AS SELECT * FROM {fact}'
+    daily_ddl = 'CREATE OR REPLACE VIEW lake.published.daily_sales SECURITY DEFINER AS ' + daily_sales_query('lake.published.fact_invoice_line')
+    with closing(trino_connection()) as conn:
+        cur = conn.cursor()
+        cur.execute('CREATE SCHEMA IF NOT EXISTS lake.published').fetchall()
+        cur.execute("SELECT table_name FROM lake.information_schema.views WHERE table_schema='published'")
+        has_fact = any(row[0] == 'fact_invoice_line' for row in cur.fetchall())
+        # On release updates, leave the old fact live until the daily view definition is ready.
+        commands = (daily_ddl, fact_ddl) if has_fact else (fact_ddl, daily_ddl)
+        for command in commands:
+            cur.execute(command).fetchall()
+
+
+def verify_bi_access():
+    from trino.exceptions import TrinoUserError
+
+    with closing(trino_connection('lake_bi', 'published')) as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT sum(line_count), sum(net_sales) FROM lake.published.daily_sales')
+        count, total = cur.fetchone()
+        cur.execute('SELECT source_row_id FROM lake.published.fact_invoice_line LIMIT 1')
+        if not cur.fetchone():
+            raise RuntimeError('The published invoice fact view was empty')
+        denied = []
+        for table in ('silver.quarantine', 'silver.transactions', 'gold.fact_invoice_line'):
+            try:
+                cur.execute(f'SELECT 1 FROM lake.{table} LIMIT 1').fetchall()
+            except TrinoUserError as error:
+                if error.error_name != 'PERMISSION_DENIED':
+                    raise
+                denied.append(table)
+            else:
+                raise RuntimeError(f'BI Trino identity can read {table}')
+    return {'rows': count, 'signed_net_sales': str(total), 'unpublished_access_denied': denied}

@@ -64,21 +64,25 @@ def dashboard(filename, uid, title, rows, additional_links):
     (OUTPUT/filename).write_text(json.dumps(output, indent=2)+'\n', encoding='utf-8')
 
 
-dashboard('pipeline.json', 'learning-pipeline', 'Retail Pipeline | Releases and Quality', [
-    (5, [panel('Full workbook input', 'lab_input_rows{scope="full"}', 'locale'),
-         panel('Accepted invoice lines', 'lab_accepted_rows{scope="full"}', 'locale'),
-         panel('Quarantined lines', 'lab_quarantined_rows{scope="full"}', 'locale'),
-         panel('Exact-match groups', 'lab_reconciled_groups{scope="full"}', 'locale')]),
-    (5, [panel('Last full run', 'lab_pipeline_last_attempt_success', mappings=PASS),
-         panel('Current run', 'lab_pipeline_running', mappings=RUNNING),
-         panel('dbt checks passed', 'lab_dbt_tests_passed{scope="full"}'),
-         panel('Release age', 'time() - lab_publication_timestamp_seconds{scope="full"}', 's', warn=86400, bad=93600)]),
-    (8, [panel('Full execution duration', 'lab_pipeline_duration_seconds{scope="full"}', 's', 'timeseries'),
-         panel('Last successful run by stage', [('lab_pipeline_stage_duration_seconds', '{{stage}}')], 's', 'bargauge')]),
-    (8, [panel('Successful and failed attempts', [('lab_pipeline_attempts_total', '{{result}}')], 'short', 'timeseries',
+def full(metric):
+    return metric+'{scope="full",engine="lakehouse"}'
+
+
+dashboard('pipeline.json', 'learning-pipeline', 'Retail Lakehouse | Releases and Quality', [
+    (5, [panel('Full workbook input', full('lab_input_rows'), 'locale'),
+         panel('Accepted invoice lines', full('lab_accepted_rows'), 'locale'),
+         panel('Quarantined lines', full('lab_quarantined_rows'), 'locale'),
+         panel('Daily groups validated', full('lab_validated_daily_groups'), 'locale')]),
+    (5, [panel('Last full run', full('lab_pipeline_last_attempt_success'), mappings=PASS),
+         panel('Current run', full('lab_pipeline_running'), mappings=RUNNING),
+         panel('Iceberg checks passed', full('lab_iceberg_checks_passed')),
+         panel('Release age', 'time() - '+full('lab_publication_timestamp_seconds'), 's', warn=86400, bad=93600)]),
+    (8, [panel('Full execution duration', full('lab_pipeline_duration_seconds'), 's', 'timeseries'),
+         panel('Last successful run by stage', [('lab_pipeline_stage_duration_seconds{engine="lakehouse"}', '{{stage}}')], 's', 'bargauge')]),
+    (8, [panel('Successful and failed attempts', [('lab_pipeline_attempts_total{engine="lakehouse"}', '{{result}}')], 'short', 'timeseries',
                description='Counters start with this instrumentation and persist across service restarts.'),
-         panel('Quarantine rate', '100 * lab_quarantined_rows{scope="full"} / lab_input_rows{scope="full"}', 'percent', 'timeseries'),
-         panel('Unaccounted input rows', 'lab_input_rows{scope="full"} - lab_accepted_rows{scope="full"} - lab_quarantined_rows{scope="full"}', 'short', 'timeseries')]),
+         panel('Quarantine rate', f'100 * {full("lab_quarantined_rows")} / {full("lab_input_rows")}', 'percent', 'timeseries'),
+         panel('Unaccounted input rows', ' - '.join(map(full, ('lab_input_rows', 'lab_accepted_rows', 'lab_quarantined_rows'))), 'short', 'timeseries')]),
 ], {'Services and catalog': GRAFANA+'learning-services', 'CDC and WAL': GRAFANA+'learning-cdc'})
 
 dashboard('services.json', 'learning-services', 'Retail Platform | Services and Catalog', [
@@ -89,7 +93,7 @@ dashboard('services.json', 'learning-services', 'Retail Platform | Services and 
     (8, [panel('Dependency status', [('lab_service_up', '{{service}}')], 'short', 'bargauge', mappings=STATUS,
                description='An optional profile also appears down while its containers are stopped.'),
          panel('Probe latency', [('lab_service_probe_seconds', '{{service}}')], 's', 'timeseries')]),
-    (8, [panel('Release version gap', 'clamp_min(lab_publication_timestamp_seconds{scope="full"} - lab_catalog_release_timestamp_seconds{scope="full"}, 0)',
+    (8, [panel('Release version gap', f'clamp_min({full("lab_publication_timestamp_seconds")} - {full("lab_catalog_release_timestamp_seconds")}, 0)',
                's', 'timeseries', description='Zero means the newest full release is cataloged.'),
          panel('Firing alerts', 'count(ALERTS{alertstate="firing"}) or vector(0)', 'short', 'timeseries', bad=1)]),
 ], {'Releases and quality': GRAFANA+'learning-pipeline', 'CDC and WAL': GRAFANA+'learning-cdc'})

@@ -2,11 +2,11 @@
 import json,zipfile,base64,hashlib
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
-excluded_parts={'data','docker-data','__pycache__','.ipynb_checkpoints','.venv','.git','logs','target','dbt_packages'}
-excluded_names={'.env','seaweedfs.json','iceberg.properties','postgres.properties','project_payload.zip','project_payload.b64','notebook_template.ipynb'}
+excluded_parts={'data','docker-data','__pycache__','.ipynb_checkpoints','.venv','.git','logs','target'}
+excluded_names={'.env','seaweedfs.json','iceberg.properties','notebook_template.ipynb'}
 allowed_evidence={
  'verification.json','notebook-verification.json','runtime-lock.json','images.lock.json','requirements.lock.txt',
- 'restore-verification.json','cdc-verification.json','bi-verification.json','orchestration-verification.json',
+ 'cdc-verification.json','bi-verification.json','orchestration-verification.json',
  'monitoring-verification.json','openmetadata-verification.json','sample-verification.json',
  'health-verification.json','unit-tests.txt','notebook-validation.json','daily-sales.png'}
 output=root/'artifacts/data_platform_learning_lab.zip'

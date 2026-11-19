@@ -20,13 +20,11 @@ from .run_state import CATALOG_STATE, CURRENT_RELEASE, PIPELINE_STATE, read_json
 DOMAIN = 'RetailAnalytics'
 PRODUCT = 'RetailSales'
 GOVERNANCE = {
-    'Published': 'Consumer-facing data product released after dbt tests and cross-engine reconciliation.',
-    'Restricted': 'Internal staging, source or rejected observations. The warehouse BI role has no read access.',
-    'Pseudonymous': 'Source customer identifier. Missing identifiers use the explicit UNKNOWN member in the marts.',
+    'Published': 'Consumer-facing Trino view released after validation of the Iceberg snapshots.',
+    'Restricted': 'Source data, internal Iceberg tables or rejected observations. The BI identity reads published views.',
+    'Pseudonymous': 'Source customer identifier. Missing identifiers use the explicit UNKNOWN member.',
 }
 GRAINS = {
-    'raw_lines': 'One workbook row. Raw fields are strings. Source identifiers preserve sheet and row position.',
-    'typed_lines': 'One typed source row with a rejection reason where validation found an invalid field.',
     'transactions': 'One valid workbook observation with typed fields and explicit cancellation rules.',
     'fact_invoice_line': 'One accepted workbook observation. Cancellations and duplicate-looking source observations remain.',
     'daily_sales': 'One business date, GBP currency, and observed country. Signed sales sum quantity × unit price.',
@@ -104,7 +102,7 @@ class RetailCatalog:
                                  displayName='Retail Data Stewards',
                                  description='Accountable for the retail source contract, catalog and published data products.')
         self.upsert('domains', 'domain', name=DOMAIN, domainType='Aggregate', displayName='Retail Analytics',
-                    description='Retail workbook, CDC demonstrations, warehouse, lakehouse and analytics.', owners=[self.owner])
+                    description='Retail workbook, CDC, Iceberg lakehouse and analytics.', owners=[self.owner])
         self.owned('classifications', 'classification', name='RetailAccess', displayName='Retail Access',
                    description='Dataset stewardship and intended access in the learning platform.')
         for name, description in GOVERNANCE.items():
@@ -123,11 +121,12 @@ class RetailCatalog:
             if schema not in schemas:
                 schemas[schema] = self.owned('databaseSchemas', 'databaseSchema', name=schema,
                                              database=database_ref['fullyQualifiedName'])
-            published = schema in ('mart', 'gold')
-            properties = {'tableType': 'Iceberg' if iceberg else 'View' if schema in ('core', 'mart') else 'Regular'}
+            published = schema == 'published'
+            properties = {'tableType': 'View' if published else 'Iceberg' if iceberg else 'Regular'}
             if iceberg:
-                properties['fileFormat'] = 'parquet'
                 properties['sourceUrl'] = 'http://localhost:18080/ui/'
+                if not published:
+                    properties['fileFormat'] = 'parquet'
             result[qualified] = self.owned(
                 'tables', 'table', name=name, description=GRAINS[name], columns=list(map(column_metadata, columns)),
                 databaseSchema=schemas[schema]['fullyQualifiedName'], tags=[tag('Published' if published else 'Restricted')],
@@ -182,7 +181,7 @@ class RetailCatalog:
                            f"Checksummed immutable bronze with {manifest['rows']:,} rows in {len(manifest['files'])} Parquet files.",
                            parent=lake, numberOfObjects=len(manifest['files'])+1, fileFormats=['parquet', 'json'])
         catalog_releases = container('releases', 'Retail release manifests', 's3://lakehouse/releases',
-                                     f"Latest cataloged release `{release['release_id']}` pins the Iceberg snapshots and warehouse build.",
+                                     f"Latest cataloged release `{release['release_id']}` records the validated Iceberg snapshots.",
                                      parent=lake, fileFormats=['json'])
         self.link(workbook, bronze, 'Python extracts workbook observations into checksummed bronze parts.')
         cdc = None
@@ -197,35 +196,33 @@ class RetailCatalog:
                           service=service['fullyQualifiedName'], description=description,
                           charts=[ref['fullyQualifiedName'] for ref in chart_refs])
 
-    def quality(self, release, warehouse, attempt):
+    def quality(self, release, tables):
         lake = release['lakehouse']
-        reconciled = release['reconciliation']['daily_groups_checked']
+        validation = release['validation']
+        groups = validation['daily_groups_checked']
         checks = [
             ('full_input_accounting', 'Full workbook row accounting', 'Completeness', 'fact_invoice_line',
              f"{lake['accepted_rows']:,} accepted + {lake['quarantined_rows']:,} quarantined = {lake['input_rows']:,} workbook rows.",
-             {'input_rows': lake['input_rows'], 'accepted_rows': lake['accepted_rows'], 'quarantined_rows': lake['quarantined_rows']}, 'iceberg'),
-            ('exact_cross_engine_reconciliation', 'Exact Iceberg / dbt reconciliation', 'Consistency', 'daily_sales',
-             f'{reconciled:,} business keys agree on line count, gross sales, credits and signed net sales.',
-             {'daily_groups_checked': reconciled}, 'reconciliation'),
-            ('dbt_publish_gate', 'dbt build and data tests', 'Validity', 'fact_invoice_line',
-             f"{release['warehouse']['dbt_models']} dbt models built and {release['warehouse']['dbt_tests_passed']} tests passed.",
-             {'tests_passed': release['warehouse']['dbt_tests_passed']}, 'dbt'),
+             {'input_rows': lake['input_rows'], 'accepted_rows': lake['accepted_rows'], 'quarantined_rows': lake['quarantined_rows']}),
+            ('iceberg_daily_totals', 'Daily Iceberg totals match the invoice fact', 'Consistency', 'daily_sales',
+             f'{groups:,} business keys match fact line counts, gross sales, credits and signed sales.',
+             {'daily_groups_checked': groups}),
+            ('iceberg_fact_integrity', 'Iceberg invoice fact integrity', 'Integrity', 'fact_invoice_line',
+             'Source row IDs are unique, customer keys resolve, and the fact total matches the Spark result.',
+             {'signed_net_sales_gbp': validation['signed_net_sales']}),
         ]
         timestamp = millis(datetime.fromisoformat(release['published_at']))
         recorded = []
-        for name, title, dimension, table, result, values, stage in checks:
+        for name, title, dimension, table, result, values in checks:
             self.upsert('dataQuality/testDefinitions', 'testDefinition', name=name, displayName=title,
                         description='Result reported by the full retail publication workflow.', entityType='TABLE',
-                        testPlatforms=['dbt' if name == 'dbt_publish_gate' else 'Other'], dataQualityDimension=dimension)
-            fqn = warehouse[f'mart.{table}']['fullyQualifiedName']
+                        testPlatforms=['Other'], dataQualityDimension=dimension)
+            fqn = tables[f'gold.{table}']['fullyQualifiedName']
             test = self.upsert('dataQuality/testCases', 'testCase', name=name, displayName=title,
                                description='Evidence from the source pipeline quality gate.', testDefinition=name,
                                entityLink=f'<#E::table::{fqn}>', owners=[self.owner])
             path = f"dataQuality/testCases/testCaseResults/{quote(test['fullyQualifiedName'], safe='')}"
             self.post_quality_result(path, timestamp, 'Success', result, values)
-            if attempt.get('result') == 'failure' and attempt['stage'] == stage:
-                self.post_quality_result(path, millis(attempt['finished_at']), 'Failed',
-                                         f"Full run stopped in {stage} ({attempt['error']}).", {})
             recorded.append(test['fullyQualifiedName'])
         return recorded
 
@@ -242,28 +239,9 @@ class RetailCatalog:
                 raise
 
 
-def publish_dbt_lineage(catalog, warehouse, manifest, dbt_pipeline):
-    dbt = read_json(DATA/'releases'/f"{manifest['release_id']}-dbt/manifest.json")
-    if dbt is None:
-        raise RuntimeError('The published dbt manifest is missing. Run the full pipeline to generate it.')
-    model_mapping = {'stg_typed': 'core.typed_lines', 'stg_valid_lines': 'core.transactions',
-                     **{name: f'mart.{name}' for name in sources.PG_TABLES['mart']}}
-    nodes = {node_id: model_mapping[node['name']] for node_id, node in dbt['nodes'].items()
-             if node['resource_type'] == 'model' and node['name'] in model_mapping}
-    nodes.update({node_id: 'staging.raw_lines' for node_id, node in dbt['sources'].items() if node['name'] == 'raw_lines'})
-    for node_id, relation in nodes.items():
-        node = dbt['nodes'].get(node_id)
-        if not node:
-            continue
-        for dependency in node['depends_on']['nodes']:
-            if dependency in nodes:
-                catalog.link(warehouse[nodes[dependency]], warehouse[relation], f"dbt model `{node['name']}`.",
-                             'DbtLineage', dbt_pipeline, node.get('compiled_code'))
-
-
-def publish_superset(catalog, dashboards, warehouse):
+def publish_superset(catalog, dashboards, lake):
     service = catalog.service('dashboard', 'Superset', 'RetailSuperset', 'Apache Superset',
-                              'Business dashboards over the full published PostgreSQL marts.')
+                              'Business dashboards over published Trino views of the full Iceberg release.')
     results = []
     for slug, dashboard in dashboards.items():
         charts = [{'name': f"chart-{chart['id']}", 'displayName': chart['slice_name'],
@@ -272,10 +250,10 @@ def publish_superset(catalog, dashboards, warehouse):
                                  'echarts_timeseries_bar': 'Bar'}.get(chart.get('viz_type'), 'Other')}
                   for chart in dashboard['charts']]
         ref = catalog.dashboard(service, slug, dashboard['title'], bi.SUPERSET_PUBLIC_URL+f'/superset/dashboard/{slug}/',
-                                'Editable charts on the latest reconciled full-workbook release.', charts)
+                                'Editable charts on the latest validated full-workbook Iceberg release.', charts)
         results.append(ref)
         for table in sorted(dashboard['tables']):
-            catalog.link(warehouse[f'mart.{table}'], ref, 'Superset chart dataset.', 'DashboardLineage')
+            catalog.link(lake[f'published.{table}'], ref, 'Superset chart reads this published Trino view.', 'DashboardLineage')
     return results
 
 
@@ -303,7 +281,7 @@ def publish_monitoring(catalog, grafana, rules):
 
 
 def publish_orchestration(catalog, airflow):
-    batch_description = 'Ingests the full workbook, builds both branches and stops publication if validation fails.'
+    batch_description = 'Ingests the full workbook, validates the Iceberg snapshots and publishes the Trino views.'
     airflow_service = catalog.service('pipeline', 'Airflow', 'RetailAirflow', 'Apache Airflow', batch_description)
     batch = catalog.pipeline(airflow_service, airflow['name'], batch_description,
                              'http://localhost:18081/dags/'+airflow['name'], ('run_and_validate',),
@@ -356,16 +334,15 @@ def collect_optional(unavailable, name, function, fallback):
 
 def index_release(api, release, attempt, strict):
     lake_run = release['lakehouse']
-    if not lake_run['input_run_id'].endswith('-full') or not release['reconciliation']['exact_decimal_match']:
-        raise RuntimeError('A reconciled full-workbook release is required')
+    if release.get('engine') != 'lakehouse' or not lake_run['input_run_id'].endswith('-full') or not release['validation']['passed']:
+        raise RuntimeError('A validated full-workbook Iceberg release is required')
     catalog = RetailCatalog(api)
     manifest = read_json(DATA/'bronze'/lake_run['input_run_id']/'manifest.json')
     catalog.setup_governance()
     storage = sources.storage_metadata(manifest, release['release_id'])
     bronze, release_manifests, cdc_bronze = catalog.storage(manifest, release, storage)
-    postgres = catalog.service('database', 'Postgres', 'RetailPostgres', 'PostgreSQL warehouse and CDC source',
-                               'PostgreSQL stable warehouse relations and the synthetic source_demo database.')
-    warehouse = catalog.register_tables(postgres, 'warehouse', sources.postgres_columns('warehouse', sources.PG_TABLES))
+    postgres = catalog.service('database', 'Postgres', 'RetailPostgres', 'PostgreSQL CDC source',
+                               'Synthetic operational source and heartbeat for the Iceberg CDC demonstration.')
     operational = catalog.register_tables(postgres, 'source_demo', sources.postgres_columns('source_demo', sources.SOURCE_TABLES))
     trino = catalog.service('database', 'Trino', 'RetailTrino', 'Trino / Iceberg lakehouse',
                             'Queries Iceberg managed by Spark using the PostgreSQL JDBC catalog and SeaweedFS S3.')
@@ -377,26 +354,21 @@ def index_release(api, release, attempt, strict):
                                     'PySpark writes typed silver and analytical gold tables using the Iceberg catalog.')
     spark = catalog.pipeline(spark_service, 'retail_iceberg_build', 'Transforms bronze and writes Iceberg.',
                              'http://localhost:18888/lab/tree/lab/lakehouse.py', ('normalize', 'quarantine', 'build_gold'))
-    dbt_service = catalog.service('pipeline', 'CustomPipeline', 'RetailDbt', 'dbt Core',
-                                  'Builds PostgreSQL model candidates. Catalog lineage uses the dbt manifest archived per full release.')
-    dbt = catalog.pipeline(dbt_service, 'retail_learning', 'Runs dbt models and data tests before publication.',
-                           'http://localhost:18888/lab/tree/dbt', ('build_models', 'test_models'))
-    catalog.link(bronze, warehouse['staging.raw_lines'], 'Python bulk loads the same immutable bronze manifest into PostgreSQL.')
     for target in ('silver.transactions', 'silver.quarantine'):
         catalog.link(bronze, lake[target], 'Spark applies the source contract and routes rows by validation result.')
     for target in sources.ICEBERG_TABLES['gold']:
         catalog.link(lake['silver.transactions'], lake[f'gold.{target}'], 'Spark builds this Iceberg gold table.', 'SparkLineage', spark)
-    publish_dbt_lineage(catalog, warehouse, release, dbt)
-    for item in (lake['gold.daily_sales'], warehouse['mart.daily_sales']):
-        catalog.link(item, release_manifests, 'The publication gate uses both daily aggregates before recording the release.')
-    if attempt.get('finished_at'):
-        for pipeline, stage in [(spark, 'iceberg'), (dbt, 'dbt')]:
-            if stage in attempt['stage_seconds']:
-                failed = attempt['result'] == 'failure' and attempt['stage'] == stage
-                execution_id = attempt.get('release_id') or f"full-{millis(attempt['started_at'])}"
-                catalog.pipeline_status(pipeline, millis(attempt['started_at']), execution_id,
-                                        'Failed' if failed else 'Successful', millis(attempt['finished_at']))
-    tests = catalog.quality(release, warehouse, attempt)
+    catalog.link(lake['gold.daily_sales'], release_manifests, 'The release gate compares Iceberg daily totals with the invoice facts.')
+    catalog.link(lake['gold.fact_invoice_line'], lake['published.fact_invoice_line'],
+                 'Pinned Iceberg snapshot selected by the full release.', 'ViewLineage')
+    catalog.link(lake['published.fact_invoice_line'], lake['published.daily_sales'],
+                 'Trino rolls up the same published invoice snapshot.', 'ViewLineage')
+    if attempt.get('finished_at') and 'iceberg' in attempt['stage_seconds']:
+        failed = attempt['result'] == 'failure' and attempt['stage'] == 'iceberg'
+        execution_id = attempt.get('release_id') or f"full-{millis(attempt['started_at'])}"
+        catalog.pipeline_status(spark, millis(attempt['started_at']), execution_id,
+                                'Failed' if failed else 'Successful', millis(attempt['finished_at']))
+    tests = catalog.quality(release, lake)
 
     unavailable = []
     airflow = collect_optional(unavailable, 'Airflow DAG', sources.airflow_dag, None)
@@ -404,7 +376,7 @@ def index_release(api, release, attempt, strict):
     superset = collect_optional(unavailable, 'Superset dashboards', sources.superset_dashboards, {})
     if len(superset) != len(bi.DASHBOARDS) and 'Superset dashboards' not in unavailable:
         unavailable.append('Some Superset dashboards')
-    dashboards = publish_superset(catalog, superset, warehouse)
+    dashboards = publish_superset(catalog, superset, lake)
     grafana = collect_optional(unavailable, 'Grafana dashboards', sources.grafana_dashboards, {})
     rules = collect_optional(unavailable, 'Prometheus rules', sources.prometheus_rules, [])
     dashboards.extend(publish_monitoring(catalog, grafana, rules))
@@ -412,11 +384,11 @@ def index_release(api, release, attempt, strict):
     connector = collect_optional(unavailable, 'Debezium connector', sources.debezium_status, None)
     topics = publish_cdc(catalog, topics, connector, operational, cdc_bronze, lake)
 
-    assets = [*dashboards, *topics, bronze, release_manifests, *warehouse.values(), *lake.values()]
+    assets = [*dashboards, *topics, bronze, release_manifests, *lake.values()]
     if notebook:
         assets.append(notebook)
     product = catalog.owned('dataProducts', 'dataProduct', name=PRODUCT, displayName='Retail Sales',
-                            description=f"Reconciled full-workbook data and analytics for release `{release['release_id']}`.\n\n"
+                            description=f"Validated Iceberg data and analytics for full-workbook release `{release['release_id']}`.\n\n"
                             f"{lake_run['input_rows']:,} input rows, {lake_run['accepted_rows']:,} accepted and "
                             f"{lake_run['quarantined_rows']:,} quarantined. Signed sales are a GBP source-observation measure.\n\n"
                             '[Pipeline and quality dashboard](http://localhost:13000/d/learning-pipeline) · '
@@ -425,12 +397,12 @@ def index_release(api, release, attempt, strict):
     if strict and unavailable:
         raise RuntimeError('Catalog sources missing: '+', '.join(unavailable))
     return {'assets_synced': dict(catalog.counts), 'missing_optional_sources': unavailable,
-            'quality_tests': tests, 'warehouse_daily_sales': warehouse['mart.daily_sales']['fullyQualifiedName'],
+            'quality_tests': tests, 'published_daily_sales': lake['published.daily_sales']['fullyQualifiedName'],
             'iceberg_daily_sales': lake['gold.daily_sales']['fullyQualifiedName'], 'data_product': product['fullyQualifiedName']}
 
 
 def sync(strict=False):
-    with psycopg.connect(**pg_kwargs(), autocommit=True) as lock:
+    with psycopg.connect(**pg_kwargs('iceberg_catalog'), autocommit=True) as lock:
         lock.execute("SET lock_timeout='60s'")
         lock.execute('SELECT pg_advisory_lock(824453122)')
         previous = read_json(CATALOG_STATE, {})
@@ -445,7 +417,7 @@ def sync(strict=False):
         except Exception as error:
             write_json(CATALOG_STATE, {**previous, 'attempted_at': now, 'result': 'failure', 'error': type(error).__name__})
             raise
-        result = {**evidence, 'attempted_at': now, 'result': 'success', 'last_success_at': time.time(),
+        result = {**evidence, 'engine': 'lakehouse', 'attempted_at': now, 'result': 'success', 'last_success_at': time.time(),
                   'release_id': release['release_id'], 'published_at': datetime.fromisoformat(release['published_at']).timestamp(),
                   'source_attempt_finished_at': attempt.get('finished_at')}
         write_json(CATALOG_STATE, result)

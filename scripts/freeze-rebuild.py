@@ -6,7 +6,8 @@ locked=subprocess.check_output([sys.executable,'-m','pip','freeze'],text=True)
 (root/'requirements.lock.txt').write_text(locked)
 (root/'artifacts/requirements.lock.txt').write_text(locked)
 dockerfile=(root/'Dockerfile').read_text()
-log=(root/'artifacts/runtime-final-build.log').read_text(errors='replace')
+build_log=root/'artifacts/runtime-final-build.log'
+log=build_log.read_text(errors='replace') if build_log.exists() else ''
 digests=re.findall(r'python:3\.12-slim-bookworm@sha256:([0-9a-f]{64})',log)
 if digests:
     dockerfile=re.sub(r'^FROM python:3\.12-slim-bookworm(?:@sha256:[0-9a-f]+)?',

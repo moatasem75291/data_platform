@@ -20,9 +20,9 @@ Spark 3.5 is a maintained runtime family in Iceberg's compatibility matrix. Java
 
 ## Modeling and workflow
 
-Both analytical branches read the same completed bronze manifest and implement the same contract independently. Source-row identity deliberately differs from invoice or invoice/product keys because identical-looking source records cannot safely be collapsed without a source business rule. Missing customers use an unknown member. Decimal measures are compared at every daily country/currency key, not only at grand total.
+Spark transforms the completed bronze manifest into Iceberg tables. Source-row identity differs from invoice and invoice/product keys because identical-looking source records can represent separate observations. Missing customers use an unknown member. Trino recomputes the daily groups from pinned fact rows and compares each key and exact decimal value with Spark's gold aggregate.
 
-Warehouse candidates use isolated build schemas so dbt tests run before stable views change. Lakehouse commits are single-table; the release manifest records the coherent snapshot set. This does not create a global transaction across PostgreSQL, the catalog and object storage. Production handling of publication failure windows is explicitly documented.
+The release manifest captures the validated snapshot set. The published Trino views both follow the same fact snapshot so readers retain a consistent dataset while Spark builds candidates. The view pointer and the manifest update independently.
 
 ## Primary documentation
 
@@ -32,7 +32,7 @@ Warehouse candidates use isolated build schemas so dbt tests run before stable v
 * https://spark.apache.org/docs/3.5.8/api/python/getting_started/install.html
 * https://trino.io/docs/current/object-storage/metastores.html
 * https://github.com/seaweedfs/seaweedfs
-* https://docs.getdbt.com/faqs/Core/install-python-compatibility
+* https://trino.io/docs/current/connector/iceberg.html#time-travel-queries
 * https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/
 * https://debezium.io/documentation/reference/stable/connectors/postgresql.html
 * https://superset.apache.org/docs/
