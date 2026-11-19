@@ -7,7 +7,7 @@ artifacts/*.sql
 artifacts/*.png
 artifacts/*.html
 artifacts/*.zip
-artifacts/warehouse.dump
+artifacts/*.dump
 __pycache__/
 .ipynb_checkpoints/
 DockerDesktopInstaller.exe
