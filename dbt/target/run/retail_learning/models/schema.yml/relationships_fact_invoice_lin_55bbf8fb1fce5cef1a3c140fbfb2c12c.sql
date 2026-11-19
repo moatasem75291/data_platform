@@ -13,13 +13,13 @@
 
 with child as (
     select customer_key as from_field
-    from "warehouse"."candidate_6cd0871b5088"."fact_invoice_line"
+    from "warehouse"."candidate_a7e08816e129"."fact_invoice_line"
     where customer_key is not null
 ),
 
 parent as (
     select customer_key as to_field
-    from "warehouse"."candidate_6cd0871b5088"."dim_customer"
+    from "warehouse"."candidate_a7e08816e129"."dim_customer"
 )
 
 select

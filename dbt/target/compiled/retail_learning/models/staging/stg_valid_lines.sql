@@ -7,5 +7,5 @@ select source_row_id,invoice,stock_code,description,
  (upper(invoice) like 'C%' or q<0) is_cancellation,
  (q*p)::numeric(28,6) line_amount,
  source_sheet,source_row
-from "warehouse"."candidate_6cd0871b5088"."stg_typed"
+from "warehouse"."candidate_a7e08816e129"."stg_typed"
 where rejection_reason is null

@@ -18406,3 +18406,794 @@ where (select sum(line_amount) from "warehouse"."candidate_6cd0871b5088"."fact_i
 [0m22:33:14.035689 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76538ae75220>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76538a34d640>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76538a7df170>]}
 [0m22:33:14.036405 [debug] [MainThread]: Flushing usage events
 [0m22:33:15.114052 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m00:00:34.896692 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda262e1e0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda1018b00>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda3ff9fa0>]}
+
+
+============================== 00:00:34.902639 | 7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795 ==============================
+[0m00:00:34.902639 [info ] [MainThread]: Running with dbt=1.11.13
+[0m00:00:34.905092 [debug] [MainThread]: running dbt with arguments {'version_check': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'warn_error': 'None', 'use_experimental_parser': 'False', 'quiet': 'False', 'target_path': '/opt/lab/dbt/target', 'partial_parse': 'True', 'static_parser': 'True', 'no_print': 'None', 'log_format': 'default', 'empty': 'False', 'use_colors': 'True', 'send_anonymous_usage_stats': 'True', 'write_json': 'True', 'profiles_dir': '/opt/lab/dbt', 'fail_fast': 'False', 'printer_width': '80', 'log_cache_events': 'False', 'cache_selected_only': 'False', 'invocation_command': 'dbt build --project-dir /opt/lab/dbt --profiles-dir /opt/lab/dbt --target-path /opt/lab/dbt/target', 'indirect_selection': 'eager', 'introspect': 'True', 'debug': 'False', 'log_path': '/opt/lab/dbt/logs'}
+[0m00:00:35.093791 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda10dc6b0>]}
+[0m00:00:35.162351 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda24820f0>]}
+[0m00:00:35.164053 [info ] [MainThread]: Registered adapter: postgres=1.11.0
+[0m00:00:35.219106 [debug] [MainThread]: checksum: 509af844148393f6e569c9ab09b1b3ef0c6fadc11092ef2f934b43aaff533196, vars: {}, profile: , target: , version: 1.11.13
+[0m00:00:35.309575 [info ] [MainThread]: Unable to do partial parsing because profile has changed
+[0m00:00:35.310871 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'partial_parser', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda194cc80>]}
+[0m00:00:36.582684 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd9ef47500>]}
+[0m00:00:36.689890 [debug] [MainThread]: Wrote artifact WritableManifest to /opt/lab/dbt/target/manifest.json
+[0m00:00:36.694422 [debug] [MainThread]: Wrote artifact SemanticManifest to /opt/lab/dbt/target/semantic_manifest.json
+[0m00:00:36.720811 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'resource_counts', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd9e7299a0>]}
+[0m00:00:36.721950 [info ] [MainThread]: Found 7 models, 8 data tests, 1 source, 477 macros
+[0m00:00:36.724434 [info ] [MainThread]: 
+[0m00:00:36.725413 [info ] [MainThread]: Concurrency: 2 threads (target='lab')
+[0m00:00:36.726048 [info ] [MainThread]: 
+[0m00:00:36.726888 [debug] [MainThread]: Acquiring new postgres connection 'master'
+[0m00:00:36.730631 [debug] [ThreadPool]: Acquiring new postgres connection 'list_warehouse'
+[0m00:00:36.768378 [debug] [ThreadPool]: Using postgres connection "list_warehouse"
+[0m00:00:36.769681 [debug] [ThreadPool]: On list_warehouse: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "connection_name": "list_warehouse"} */
+
+    select distinct nspname from pg_namespace
+  
+[0m00:00:36.770744 [debug] [ThreadPool]: Opening a new connection, currently in state init
+[0m00:00:36.784260 [debug] [ThreadPool]: SQL status: SELECT 33 in 0.013 seconds
+[0m00:00:36.786409 [debug] [ThreadPool]: On list_warehouse: Close
+[0m00:00:36.787769 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_warehouse, now create_warehouse_candidate_a7e08816e129)
+[0m00:00:36.788902 [debug] [ThreadPool]: Creating schema "database: "warehouse"
+schema: "candidate_a7e08816e129"
+"
+[0m00:00:36.793502 [debug] [ThreadPool]: Using postgres connection "create_warehouse_candidate_a7e08816e129"
+[0m00:00:36.794389 [debug] [ThreadPool]: On create_warehouse_candidate_a7e08816e129: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "connection_name": "create_warehouse_candidate_a7e08816e129"} */
+create schema if not exists "candidate_a7e08816e129"
+[0m00:00:36.795344 [debug] [ThreadPool]: Opening a new connection, currently in state closed
+[0m00:00:36.801866 [debug] [ThreadPool]: SQL status: CREATE SCHEMA in 0.006 seconds
+[0m00:00:36.803428 [debug] [ThreadPool]: On create_warehouse_candidate_a7e08816e129: COMMIT
+[0m00:00:36.804572 [debug] [ThreadPool]: Using postgres connection "create_warehouse_candidate_a7e08816e129"
+[0m00:00:36.805662 [debug] [ThreadPool]: On create_warehouse_candidate_a7e08816e129: COMMIT
+[0m00:00:36.808800 [debug] [ThreadPool]: SQL status: COMMIT in 0.002 seconds
+[0m00:00:36.809682 [debug] [ThreadPool]: On create_warehouse_candidate_a7e08816e129: Close
+[0m00:00:36.811976 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly create_warehouse_candidate_a7e08816e129, now list_warehouse_candidate_a7e08816e129)
+[0m00:00:36.817737 [debug] [ThreadPool]: Using postgres connection "list_warehouse_candidate_a7e08816e129"
+[0m00:00:36.818738 [debug] [ThreadPool]: On list_warehouse_candidate_a7e08816e129: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "connection_name": "list_warehouse_candidate_a7e08816e129"} */
+select
+      'warehouse' as database,
+      tablename as name,
+      schemaname as schema,
+      'table' as type
+    from pg_tables
+    where schemaname ilike 'candidate_a7e08816e129'
+    union all
+    select
+      'warehouse' as database,
+      viewname as name,
+      schemaname as schema,
+      'view' as type
+    from pg_views
+    where schemaname ilike 'candidate_a7e08816e129'
+    union all
+    select
+      'warehouse' as database,
+      matviewname as name,
+      schemaname as schema,
+      'materialized_view' as type
+    from pg_matviews
+    where schemaname ilike 'candidate_a7e08816e129'
+    union all
+    select distinct
+     'warehouse' as database,
+     proname as name,
+     ns.nspname as schema,
+     'function' as type
+    from pg_proc
+     join pg_namespace as ns on pronamespace = ns.oid
+    where ns.nspname ilike 'candidate_a7e08816e129'
+  
+[0m00:00:36.819755 [debug] [ThreadPool]: Opening a new connection, currently in state closed
+[0m00:00:36.838912 [debug] [ThreadPool]: SQL status: SELECT 0 in 0.019 seconds
+[0m00:00:36.840976 [debug] [ThreadPool]: On list_warehouse_candidate_a7e08816e129: ROLLBACK
+[0m00:00:36.842135 [debug] [ThreadPool]: On list_warehouse_candidate_a7e08816e129: Close
+[0m00:00:36.846310 [debug] [MainThread]: Using postgres connection "master"
+[0m00:00:36.847285 [debug] [MainThread]: On master: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "connection_name": "master"} */
+select distinct
+        dependent_namespace.nspname as dependent_schema,
+        dependent_class.relname as dependent_name,
+        referenced_namespace.nspname as referenced_schema,
+        referenced_class.relname as referenced_name
+
+    -- Query for views: views are entries in pg_class with an entry in pg_rewrite, but we avoid
+    -- a seq scan on pg_rewrite by leveraging the fact there is an "internal" row in pg_depend for
+    -- the view...
+    from pg_class as dependent_class
+    join pg_namespace as dependent_namespace on dependent_namespace.oid = dependent_class.relnamespace
+    join pg_depend as dependent_depend on dependent_depend.refobjid = dependent_class.oid
+        and dependent_depend.classid = 'pg_rewrite'::regclass
+        and dependent_depend.refclassid = 'pg_class'::regclass
+        and dependent_depend.deptype = 'i'
+
+    -- ... and via pg_depend (that has a row per column, hence the need for "distinct" above, and
+    -- making sure to exclude the internal row to avoid a view appearing to depend on itself)...
+    join pg_depend as joining_depend on joining_depend.objid = dependent_depend.objid
+        and joining_depend.classid = 'pg_rewrite'::regclass
+        and joining_depend.refclassid = 'pg_class'::regclass
+        and joining_depend.refobjid != dependent_depend.refobjid
+
+    -- ... we can find the tables they query from in pg_class, but excluding system tables. Note we
+    -- don't need need to exclude _dependent_ system tables, because they only query from other
+    -- system tables, and so are automatically excluded by excluding _referenced_ system tables
+    join pg_class as referenced_class on referenced_class.oid = joining_depend.refobjid
+    join pg_namespace as referenced_namespace on referenced_namespace.oid = referenced_class.relnamespace
+        and referenced_namespace.nspname != 'information_schema'
+        and referenced_namespace.nspname not like 'pg\_%'
+
+    order by
+        dependent_schema, dependent_name, referenced_schema, referenced_name;
+[0m00:00:36.848269 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m00:00:36.858624 [debug] [MainThread]: SQL status: SELECT 7 in 0.010 seconds
+[0m00:00:36.860628 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5f9669c0>]}
+[0m00:00:36.861851 [debug] [MainThread]: On master: ROLLBACK
+[0m00:00:36.862995 [debug] [MainThread]: On master: COMMIT
+[0m00:00:36.864011 [debug] [MainThread]: Using postgres connection "master"
+[0m00:00:36.864841 [debug] [MainThread]: On master: COMMIT
+[0m00:00:36.865860 [debug] [MainThread]: SQL status: COMMIT in 0.000 seconds
+[0m00:00:36.866731 [debug] [MainThread]: On master: Close
+[0m00:00:36.870141 [debug] [Thread-1 (]: Began running node model.retail_learning.stg_typed
+[0m00:00:36.871244 [info ] [Thread-1 (]: 1 of 15 START sql table model candidate_a7e08816e129.stg_typed ................. [RUN]
+[0m00:00:36.872382 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly list_warehouse_candidate_a7e08816e129, now model.retail_learning.stg_typed)
+[0m00:00:36.873340 [debug] [Thread-1 (]: Began compiling node model.retail_learning.stg_typed
+[0m00:00:36.878852 [debug] [Thread-1 (]: Writing injected SQL for node "model.retail_learning.stg_typed"
+[0m00:00:36.885954 [debug] [Thread-1 (]: Began executing node model.retail_learning.stg_typed
+[0m00:00:36.912452 [debug] [Thread-1 (]: Writing runtime sql for node "model.retail_learning.stg_typed"
+[0m00:00:36.918503 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.stg_typed"
+[0m00:00:36.919367 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_typed"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."stg_typed__dbt_tmp"
+  
+  
+    as
+  
+  (
+    with parsed as (
+ select *,
+   case when pg_input_is_valid(quantity, 'numeric') then quantity::numeric(20,6) end q,
+   case when pg_input_is_valid(unit_price, 'numeric') then unit_price::numeric(20,6) end p,
+   case when pg_input_is_valid(invoice_date, 'timestamp') then invoice_date::timestamp end local_ts
+ from "warehouse"."staging"."raw_lines"
+)
+select *, case
+ when invoice is null or trim(invoice)='' then 'missing_invoice'
+ when stock_code is null or trim(stock_code)='' then 'missing_stock_code'
+ when local_ts is null then 'invalid_date'
+ when q is null or q=0 or q<>floor(q) or abs(q)>1000000000 then 'invalid_quantity'
+ when p is null or p<0 then 'invalid_price'
+ else null end rejection_reason
+from parsed
+  );
+  
+[0m00:00:36.920072 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:41.752791 [debug] [Thread-1 (]: SQL status: SELECT 1067371 in 4.833 seconds
+[0m00:00:41.761042 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.stg_typed"
+[0m00:00:41.762265 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_typed"} */
+alter table "warehouse"."candidate_a7e08816e129"."stg_typed__dbt_tmp" rename to "stg_typed"
+[0m00:00:41.763840 [debug] [Thread-1 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:41.776362 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: COMMIT
+[0m00:00:41.777522 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.stg_typed"
+[0m00:00:41.778342 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: COMMIT
+[0m00:00:41.787450 [debug] [Thread-1 (]: SQL status: COMMIT in 0.008 seconds
+[0m00:00:41.793445 [debug] [Thread-1 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."stg_typed__dbt_backup"
+[0m00:00:41.798116 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.stg_typed"
+[0m00:00:41.799222 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_typed"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."stg_typed__dbt_backup" cascade
+[0m00:00:41.800434 [debug] [Thread-1 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:41.803007 [debug] [Thread-1 (]: On model.retail_learning.stg_typed: Close
+[0m00:00:41.805486 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda202cfe0>]}
+[0m00:00:41.806758 [info ] [Thread-1 (]: 1 of 15 OK created sql table model candidate_a7e08816e129.stg_typed ............ [[32mSELECT 1067371[0m in 4.93s]
+[0m00:00:41.807889 [debug] [Thread-1 (]: Finished running node model.retail_learning.stg_typed
+[0m00:00:41.809676 [debug] [Thread-2 (]: Began running node model.retail_learning.stg_valid_lines
+[0m00:00:41.812286 [info ] [Thread-2 (]: 2 of 15 START sql table model candidate_a7e08816e129.stg_valid_lines ........... [RUN]
+[0m00:00:41.814736 [debug] [Thread-2 (]: Acquiring new postgres connection 'model.retail_learning.stg_valid_lines'
+[0m00:00:41.815616 [debug] [Thread-2 (]: Began compiling node model.retail_learning.stg_valid_lines
+[0m00:00:41.820031 [debug] [Thread-2 (]: Writing injected SQL for node "model.retail_learning.stg_valid_lines"
+[0m00:00:41.829401 [debug] [Thread-2 (]: Began executing node model.retail_learning.stg_valid_lines
+[0m00:00:41.832807 [debug] [Thread-2 (]: Writing runtime sql for node "model.retail_learning.stg_valid_lines"
+[0m00:00:41.838067 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.stg_valid_lines"
+[0m00:00:41.838986 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_valid_lines"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."stg_valid_lines__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select source_row_id,invoice,stock_code,description,
+ q::bigint quantity,p::numeric(20,6) unit_price,
+ local_ts at time zone 'Europe/London' invoice_ts,
+ local_ts::date invoice_date,
+ coalesce(nullif(regexp_replace(trim(customer_id),'[.]0$',''),''),'UNKNOWN') customer_key,
+ coalesce(country,'UNKNOWN') country,'GBP'::text currency,
+ (upper(invoice) like 'C%' or q<0) is_cancellation,
+ (q*p)::numeric(28,6) line_amount,
+ source_sheet,source_row
+from "warehouse"."candidate_a7e08816e129"."stg_typed"
+where rejection_reason is null
+  );
+  
+[0m00:00:41.839732 [debug] [Thread-2 (]: Opening a new connection, currently in state init
+[0m00:00:45.157282 [debug] [Thread-2 (]: SQL status: SELECT 1067366 in 3.317 seconds
+[0m00:00:45.160959 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.stg_valid_lines"
+[0m00:00:45.162254 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_valid_lines"} */
+alter table "warehouse"."candidate_a7e08816e129"."stg_valid_lines__dbt_tmp" rename to "stg_valid_lines"
+[0m00:00:45.163945 [debug] [Thread-2 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:45.165529 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: COMMIT
+[0m00:00:45.169849 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.stg_valid_lines"
+[0m00:00:45.171221 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: COMMIT
+[0m00:00:45.176668 [debug] [Thread-2 (]: SQL status: COMMIT in 0.004 seconds
+[0m00:00:45.181863 [debug] [Thread-2 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."stg_valid_lines__dbt_backup"
+[0m00:00:45.183647 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.stg_valid_lines"
+[0m00:00:45.184513 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.stg_valid_lines"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."stg_valid_lines__dbt_backup" cascade
+[0m00:00:45.186510 [debug] [Thread-2 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:45.188574 [debug] [Thread-2 (]: On model.retail_learning.stg_valid_lines: Close
+[0m00:00:45.189925 [debug] [Thread-2 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5ec7cf80>]}
+[0m00:00:45.191333 [info ] [Thread-2 (]: 2 of 15 OK created sql table model candidate_a7e08816e129.stg_valid_lines ...... [[32mSELECT 1067366[0m in 3.38s]
+[0m00:00:45.192708 [debug] [Thread-2 (]: Finished running node model.retail_learning.stg_valid_lines
+[0m00:00:45.194476 [debug] [Thread-1 (]: Began running node model.retail_learning.dim_customer
+[0m00:00:45.194866 [debug] [Thread-2 (]: Began running node model.retail_learning.dim_date
+[0m00:00:45.195918 [info ] [Thread-1 (]: 3 of 15 START sql table model candidate_a7e08816e129.dim_customer .............. [RUN]
+[0m00:00:45.197261 [info ] [Thread-2 (]: 4 of 15 START sql table model candidate_a7e08816e129.dim_date .................. [RUN]
+[0m00:00:45.198599 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.retail_learning.stg_typed, now model.retail_learning.dim_customer)
+[0m00:00:45.200099 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly model.retail_learning.stg_valid_lines, now model.retail_learning.dim_date)
+[0m00:00:45.201558 [debug] [Thread-1 (]: Began compiling node model.retail_learning.dim_customer
+[0m00:00:45.202718 [debug] [Thread-2 (]: Began compiling node model.retail_learning.dim_date
+[0m00:00:45.206004 [debug] [Thread-1 (]: Writing injected SQL for node "model.retail_learning.dim_customer"
+[0m00:00:45.209855 [debug] [Thread-2 (]: Writing injected SQL for node "model.retail_learning.dim_date"
+[0m00:00:45.220030 [debug] [Thread-1 (]: Began executing node model.retail_learning.dim_customer
+[0m00:00:45.224317 [debug] [Thread-1 (]: Writing runtime sql for node "model.retail_learning.dim_customer"
+[0m00:00:45.224699 [debug] [Thread-2 (]: Began executing node model.retail_learning.dim_date
+[0m00:00:45.230014 [debug] [Thread-2 (]: Writing runtime sql for node "model.retail_learning.dim_date"
+[0m00:00:45.238404 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.dim_customer"
+[0m00:00:45.239823 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_customer"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."dim_customer__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select customer_key from "warehouse"."candidate_a7e08816e129"."stg_valid_lines" group by customer_key
+  );
+  
+[0m00:00:45.240234 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_date"
+[0m00:00:45.241248 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:45.242531 [debug] [Thread-2 (]: On model.retail_learning.dim_date: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_date"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."dim_date__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select invoice_date,extract(year from invoice_date)::int as calendar_year,extract(month from invoice_date)::int as calendar_month
+from "warehouse"."candidate_a7e08816e129"."stg_valid_lines" group by invoice_date
+  );
+  
+[0m00:00:45.246265 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:45.495245 [debug] [Thread-2 (]: SQL status: SELECT 604 in 0.249 seconds
+[0m00:00:45.495694 [debug] [Thread-1 (]: SQL status: SELECT 5943 in 0.254 seconds
+[0m00:00:45.499979 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_date"
+[0m00:00:45.503621 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.dim_customer"
+[0m00:00:45.504898 [debug] [Thread-2 (]: On model.retail_learning.dim_date: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_date"} */
+alter table "warehouse"."candidate_a7e08816e129"."dim_date__dbt_tmp" rename to "dim_date"
+[0m00:00:45.506327 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_customer"} */
+alter table "warehouse"."candidate_a7e08816e129"."dim_customer__dbt_tmp" rename to "dim_customer"
+[0m00:00:45.508220 [debug] [Thread-2 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:45.509266 [debug] [Thread-1 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:45.510814 [debug] [Thread-2 (]: On model.retail_learning.dim_date: COMMIT
+[0m00:00:45.513047 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: COMMIT
+[0m00:00:45.514298 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_date"
+[0m00:00:45.515674 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.dim_customer"
+[0m00:00:45.516766 [debug] [Thread-2 (]: On model.retail_learning.dim_date: COMMIT
+[0m00:00:45.518354 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: COMMIT
+[0m00:00:45.520927 [debug] [Thread-2 (]: SQL status: COMMIT in 0.001 seconds
+[0m00:00:45.521376 [debug] [Thread-1 (]: SQL status: COMMIT in 0.001 seconds
+[0m00:00:45.523638 [debug] [Thread-2 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."dim_date__dbt_backup"
+[0m00:00:45.526495 [debug] [Thread-1 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."dim_customer__dbt_backup"
+[0m00:00:45.528231 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_date"
+[0m00:00:45.529734 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.dim_customer"
+[0m00:00:45.531188 [debug] [Thread-2 (]: On model.retail_learning.dim_date: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_date"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."dim_date__dbt_backup" cascade
+[0m00:00:45.532444 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_customer"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."dim_customer__dbt_backup" cascade
+[0m00:00:45.534101 [debug] [Thread-2 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:45.535214 [debug] [Thread-1 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:45.536958 [debug] [Thread-2 (]: On model.retail_learning.dim_date: Close
+[0m00:00:45.539205 [debug] [Thread-1 (]: On model.retail_learning.dim_customer: Close
+[0m00:00:45.540834 [debug] [Thread-2 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5ebd3d40>]}
+[0m00:00:45.541838 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5ebac3e0>]}
+[0m00:00:45.543063 [info ] [Thread-2 (]: 4 of 15 OK created sql table model candidate_a7e08816e129.dim_date ............. [[32mSELECT 604[0m in 0.34s]
+[0m00:00:45.545153 [info ] [Thread-1 (]: 3 of 15 OK created sql table model candidate_a7e08816e129.dim_customer ......... [[32mSELECT 5943[0m in 0.34s]
+[0m00:00:45.546495 [debug] [Thread-2 (]: Finished running node model.retail_learning.dim_date
+[0m00:00:45.547515 [debug] [Thread-1 (]: Finished running node model.retail_learning.dim_customer
+[0m00:00:45.548494 [debug] [Thread-2 (]: Began running node model.retail_learning.dim_product
+[0m00:00:45.549385 [debug] [Thread-1 (]: Began running node model.retail_learning.fact_invoice_line
+[0m00:00:45.550319 [info ] [Thread-2 (]: 5 of 15 START sql table model candidate_a7e08816e129.dim_product ............... [RUN]
+[0m00:00:45.551861 [info ] [Thread-1 (]: 6 of 15 START sql table model candidate_a7e08816e129.fact_invoice_line ......... [RUN]
+[0m00:00:45.552799 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly model.retail_learning.dim_date, now model.retail_learning.dim_product)
+[0m00:00:45.553995 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.retail_learning.dim_customer, now model.retail_learning.fact_invoice_line)
+[0m00:00:45.554880 [debug] [Thread-2 (]: Began compiling node model.retail_learning.dim_product
+[0m00:00:45.555729 [debug] [Thread-1 (]: Began compiling node model.retail_learning.fact_invoice_line
+[0m00:00:45.558310 [debug] [Thread-2 (]: Writing injected SQL for node "model.retail_learning.dim_product"
+[0m00:00:45.561312 [debug] [Thread-1 (]: Writing injected SQL for node "model.retail_learning.fact_invoice_line"
+[0m00:00:45.565593 [debug] [Thread-2 (]: Began executing node model.retail_learning.dim_product
+[0m00:00:45.569010 [debug] [Thread-2 (]: Writing runtime sql for node "model.retail_learning.dim_product"
+[0m00:00:45.569588 [debug] [Thread-1 (]: Began executing node model.retail_learning.fact_invoice_line
+[0m00:00:45.573442 [debug] [Thread-1 (]: Writing runtime sql for node "model.retail_learning.fact_invoice_line"
+[0m00:00:45.579636 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_product"
+[0m00:00:45.580042 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.fact_invoice_line"
+[0m00:00:45.580384 [debug] [Thread-2 (]: On model.retail_learning.dim_product: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_product"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."dim_product__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select stock_code,min(description) description from "warehouse"."candidate_a7e08816e129"."stg_valid_lines" group by stock_code
+  );
+  
+[0m00:00:45.581288 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.fact_invoice_line"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."fact_invoice_line__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select * from "warehouse"."candidate_a7e08816e129"."stg_valid_lines"
+  );
+  
+[0m00:00:45.582233 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:45.583493 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:45.698845 [debug] [Thread-2 (]: SQL status: SELECT 5305 in 0.117 seconds
+[0m00:00:45.702774 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_product"
+[0m00:00:45.703810 [debug] [Thread-2 (]: On model.retail_learning.dim_product: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_product"} */
+alter table "warehouse"."candidate_a7e08816e129"."dim_product__dbt_tmp" rename to "dim_product"
+[0m00:00:45.705627 [debug] [Thread-2 (]: SQL status: ALTER TABLE in 0.001 seconds
+[0m00:00:45.708131 [debug] [Thread-2 (]: On model.retail_learning.dim_product: COMMIT
+[0m00:00:45.710222 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_product"
+[0m00:00:45.711574 [debug] [Thread-2 (]: On model.retail_learning.dim_product: COMMIT
+[0m00:00:45.728461 [debug] [Thread-2 (]: SQL status: COMMIT in 0.015 seconds
+[0m00:00:45.731590 [debug] [Thread-2 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."dim_product__dbt_backup"
+[0m00:00:45.734311 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.dim_product"
+[0m00:00:45.735874 [debug] [Thread-2 (]: On model.retail_learning.dim_product: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.dim_product"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."dim_product__dbt_backup" cascade
+[0m00:00:45.738241 [debug] [Thread-2 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:45.740574 [debug] [Thread-2 (]: On model.retail_learning.dim_product: Close
+[0m00:00:45.741763 [debug] [Thread-2 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5eb0d460>]}
+[0m00:00:45.743060 [info ] [Thread-2 (]: 5 of 15 OK created sql table model candidate_a7e08816e129.dim_product .......... [[32mSELECT 5305[0m in 0.19s]
+[0m00:00:45.744577 [debug] [Thread-2 (]: Finished running node model.retail_learning.dim_product
+[0m00:00:45.745869 [debug] [Thread-2 (]: Began running node test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f
+[0m00:00:45.746882 [info ] [Thread-2 (]: 7 of 15 START test not_null_dim_customer_customer_key .......................... [RUN]
+[0m00:00:45.748106 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly model.retail_learning.dim_product, now test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f)
+[0m00:00:45.749477 [debug] [Thread-2 (]: Began compiling node test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f
+[0m00:00:45.758477 [debug] [Thread-2 (]: Writing injected SQL for node "test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f"
+[0m00:00:45.770504 [debug] [Thread-2 (]: Began executing node test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f
+[0m00:00:45.785002 [debug] [Thread-2 (]: Writing runtime sql for node "test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f"
+[0m00:00:45.798792 [debug] [Thread-2 (]: Using postgres connection "test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f"
+[0m00:00:45.800054 [debug] [Thread-2 (]: On test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select customer_key
+from "warehouse"."candidate_a7e08816e129"."dim_customer"
+where customer_key is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:45.801641 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:45.809676 [debug] [Thread-2 (]: SQL status: SELECT 1 in 0.008 seconds
+[0m00:00:45.813342 [debug] [Thread-2 (]: On test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f: ROLLBACK
+[0m00:00:45.815020 [debug] [Thread-2 (]: On test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f: Close
+[0m00:00:45.816945 [info ] [Thread-2 (]: 7 of 15 PASS not_null_dim_customer_customer_key ................................ [[32mPASS[0m in 0.07s]
+[0m00:00:45.818967 [debug] [Thread-2 (]: Finished running node test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f
+[0m00:00:45.820139 [debug] [Thread-2 (]: Began running node test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e
+[0m00:00:45.821266 [info ] [Thread-2 (]: 8 of 15 START test unique_dim_customer_customer_key ............................ [RUN]
+[0m00:00:45.822042 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.retail_learning.not_null_dim_customer_customer_key.c289fe4d1f, now test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e)
+[0m00:00:45.823007 [debug] [Thread-2 (]: Began compiling node test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e
+[0m00:00:45.829296 [debug] [Thread-2 (]: Writing injected SQL for node "test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e"
+[0m00:00:45.841990 [debug] [Thread-2 (]: Began executing node test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e
+[0m00:00:45.845239 [debug] [Thread-2 (]: Writing runtime sql for node "test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e"
+[0m00:00:45.854693 [debug] [Thread-2 (]: Using postgres connection "test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e"
+[0m00:00:45.855828 [debug] [Thread-2 (]: On test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+select
+    customer_key as unique_field,
+    count(*) as n_records
+
+from "warehouse"."candidate_a7e08816e129"."dim_customer"
+where customer_key is not null
+group by customer_key
+having count(*) > 1
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:45.857584 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:45.866882 [debug] [Thread-2 (]: SQL status: SELECT 1 in 0.009 seconds
+[0m00:00:45.869289 [debug] [Thread-2 (]: On test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e: ROLLBACK
+[0m00:00:45.870525 [debug] [Thread-2 (]: On test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e: Close
+[0m00:00:45.871869 [info ] [Thread-2 (]: 8 of 15 PASS unique_dim_customer_customer_key .................................. [[32mPASS[0m in 0.05s]
+[0m00:00:45.873180 [debug] [Thread-2 (]: Finished running node test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e
+[0m00:00:46.516049 [debug] [Thread-1 (]: SQL status: SELECT 1067366 in 0.932 seconds
+[0m00:00:46.519730 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.fact_invoice_line"
+[0m00:00:46.521241 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.fact_invoice_line"} */
+alter table "warehouse"."candidate_a7e08816e129"."fact_invoice_line__dbt_tmp" rename to "fact_invoice_line"
+[0m00:00:46.523026 [debug] [Thread-1 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:46.524726 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: COMMIT
+[0m00:00:46.526073 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.fact_invoice_line"
+[0m00:00:46.526871 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: COMMIT
+[0m00:00:46.530316 [debug] [Thread-1 (]: SQL status: COMMIT in 0.003 seconds
+[0m00:00:46.532773 [debug] [Thread-1 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."fact_invoice_line__dbt_backup"
+[0m00:00:46.534457 [debug] [Thread-1 (]: Using postgres connection "model.retail_learning.fact_invoice_line"
+[0m00:00:46.535309 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.fact_invoice_line"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."fact_invoice_line__dbt_backup" cascade
+[0m00:00:46.536220 [debug] [Thread-1 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:46.537757 [debug] [Thread-1 (]: On model.retail_learning.fact_invoice_line: Close
+[0m00:00:46.538656 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5ebe82c0>]}
+[0m00:00:46.539703 [info ] [Thread-1 (]: 6 of 15 OK created sql table model candidate_a7e08816e129.fact_invoice_line .... [[32mSELECT 1067366[0m in 0.98s]
+[0m00:00:46.540568 [debug] [Thread-1 (]: Finished running node model.retail_learning.fact_invoice_line
+[0m00:00:46.541899 [debug] [Thread-2 (]: Began running node test.retail_learning.all_rows_accounted
+[0m00:00:46.542223 [debug] [Thread-1 (]: Began running node test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243
+[0m00:00:46.542745 [info ] [Thread-2 (]: 9 of 15 START test all_rows_accounted .......................................... [RUN]
+[0m00:00:46.543484 [info ] [Thread-1 (]: 10 of 15 START test not_null_fact_invoice_line_customer_key .................... [RUN]
+[0m00:00:46.544176 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.retail_learning.unique_dim_customer_customer_key.7b0683cc6e, now test.retail_learning.all_rows_accounted)
+[0m00:00:46.545683 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.retail_learning.fact_invoice_line, now test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243)
+[0m00:00:46.546562 [debug] [Thread-2 (]: Began compiling node test.retail_learning.all_rows_accounted
+[0m00:00:46.547216 [debug] [Thread-1 (]: Began compiling node test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243
+[0m00:00:46.549850 [debug] [Thread-2 (]: Writing injected SQL for node "test.retail_learning.all_rows_accounted"
+[0m00:00:46.553221 [debug] [Thread-1 (]: Writing injected SQL for node "test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243"
+[0m00:00:46.559601 [debug] [Thread-2 (]: Began executing node test.retail_learning.all_rows_accounted
+[0m00:00:46.562144 [debug] [Thread-2 (]: Writing runtime sql for node "test.retail_learning.all_rows_accounted"
+[0m00:00:46.562598 [debug] [Thread-1 (]: Began executing node test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243
+[0m00:00:46.564959 [debug] [Thread-1 (]: Writing runtime sql for node "test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243"
+[0m00:00:46.575301 [debug] [Thread-2 (]: Using postgres connection "test.retail_learning.all_rows_accounted"
+[0m00:00:46.577303 [debug] [Thread-2 (]: On test.retail_learning.all_rows_accounted: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.all_rows_accounted"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  select 1 as failure
+where (select count(*) from "warehouse"."staging"."raw_lines") <>
+ ((select count(*) from "warehouse"."candidate_a7e08816e129"."fact_invoice_line")+
+ (select count(*) from "warehouse"."candidate_a7e08816e129"."stg_typed" where rejection_reason is not null))
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:46.579430 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:46.581256 [debug] [Thread-1 (]: Using postgres connection "test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243"
+[0m00:00:46.582462 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select customer_key
+from "warehouse"."candidate_a7e08816e129"."fact_invoice_line"
+where customer_key is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:46.583551 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:46.709055 [debug] [Thread-1 (]: SQL status: SELECT 1 in 0.125 seconds
+[0m00:00:46.711568 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243: ROLLBACK
+[0m00:00:46.713442 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243: Close
+[0m00:00:46.715114 [info ] [Thread-1 (]: 10 of 15 PASS not_null_fact_invoice_line_customer_key .......................... [[32mPASS[0m in 0.17s]
+[0m00:00:46.716534 [debug] [Thread-1 (]: Finished running node test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243
+[0m00:00:46.717941 [debug] [Thread-1 (]: Began running node test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd
+[0m00:00:46.719227 [info ] [Thread-1 (]: 11 of 15 START test not_null_fact_invoice_line_source_row_id ................... [RUN]
+[0m00:00:46.720614 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.retail_learning.not_null_fact_invoice_line_customer_key.e49afac243, now test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd)
+[0m00:00:46.721835 [debug] [Thread-1 (]: Began compiling node test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd
+[0m00:00:46.727212 [debug] [Thread-1 (]: Writing injected SQL for node "test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd"
+[0m00:00:46.742875 [debug] [Thread-1 (]: Began executing node test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd
+[0m00:00:46.745975 [debug] [Thread-1 (]: Writing runtime sql for node "test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd"
+[0m00:00:46.761407 [debug] [Thread-1 (]: Using postgres connection "test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd"
+[0m00:00:46.762760 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select source_row_id
+from "warehouse"."candidate_a7e08816e129"."fact_invoice_line"
+where source_row_id is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:46.764537 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:46.902356 [debug] [Thread-1 (]: SQL status: SELECT 1 in 0.138 seconds
+[0m00:00:46.905946 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd: ROLLBACK
+[0m00:00:46.907624 [debug] [Thread-1 (]: On test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd: Close
+[0m00:00:46.909435 [info ] [Thread-1 (]: 11 of 15 PASS not_null_fact_invoice_line_source_row_id ......................... [[32mPASS[0m in 0.19s]
+[0m00:00:46.911008 [debug] [Thread-1 (]: Finished running node test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd
+[0m00:00:46.912206 [debug] [Thread-1 (]: Began running node test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490
+[0m00:00:46.913424 [info ] [Thread-1 (]: 12 of 15 START test relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_  [RUN]
+[0m00:00:46.914548 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.retail_learning.not_null_fact_invoice_line_source_row_id.76fd6777cd, now test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490)
+[0m00:00:46.915618 [debug] [Thread-1 (]: Began compiling node test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490
+[0m00:00:46.920178 [debug] [Thread-1 (]: Writing injected SQL for node "test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490"
+[0m00:00:46.934559 [debug] [Thread-1 (]: Began executing node test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490
+[0m00:00:46.937506 [debug] [Thread-1 (]: Writing runtime sql for node "test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490"
+[0m00:00:46.949286 [debug] [Thread-1 (]: Using postgres connection "test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490"
+[0m00:00:46.950364 [debug] [Thread-1 (]: On test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+with child as (
+    select customer_key as from_field
+    from "warehouse"."candidate_a7e08816e129"."fact_invoice_line"
+    where customer_key is not null
+),
+
+parent as (
+    select customer_key as to_field
+    from "warehouse"."candidate_a7e08816e129"."dim_customer"
+)
+
+select
+    from_field
+
+from child
+left join parent
+    on child.from_field = parent.to_field
+
+where parent.to_field is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:46.951768 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:47.028086 [debug] [Thread-1 (]: SQL status: SELECT 1 in 0.076 seconds
+[0m00:00:47.030399 [debug] [Thread-1 (]: On test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490: ROLLBACK
+[0m00:00:47.031590 [debug] [Thread-1 (]: On test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490: Close
+[0m00:00:47.033311 [info ] [Thread-1 (]: 12 of 15 PASS relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_  [[32mPASS[0m in 0.12s]
+[0m00:00:47.034738 [debug] [Thread-1 (]: Finished running node test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490
+[0m00:00:47.035961 [debug] [Thread-1 (]: Began running node test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda
+[0m00:00:47.037315 [info ] [Thread-1 (]: 13 of 15 START test unique_fact_invoice_line_source_row_id ..................... [RUN]
+[0m00:00:47.039723 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.retail_learning.relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_.0af1eca490, now test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda)
+[0m00:00:47.040696 [debug] [Thread-1 (]: Began compiling node test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda
+[0m00:00:47.044521 [debug] [Thread-1 (]: Writing injected SQL for node "test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda"
+[0m00:00:47.046491 [debug] [Thread-2 (]: SQL status: SELECT 1 in 0.467 seconds
+[0m00:00:47.048754 [debug] [Thread-2 (]: On test.retail_learning.all_rows_accounted: ROLLBACK
+[0m00:00:47.050299 [debug] [Thread-2 (]: On test.retail_learning.all_rows_accounted: Close
+[0m00:00:47.051899 [info ] [Thread-2 (]: 9 of 15 PASS all_rows_accounted ................................................ [[32mPASS[0m in 0.51s]
+[0m00:00:47.053215 [debug] [Thread-2 (]: Finished running node test.retail_learning.all_rows_accounted
+[0m00:00:47.058943 [debug] [Thread-1 (]: Began executing node test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda
+[0m00:00:47.061775 [debug] [Thread-1 (]: Writing runtime sql for node "test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda"
+[0m00:00:47.074645 [debug] [Thread-1 (]: Using postgres connection "test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda"
+[0m00:00:47.075785 [debug] [Thread-1 (]: On test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+select
+    source_row_id as unique_field,
+    count(*) as n_records
+
+from "warehouse"."candidate_a7e08816e129"."fact_invoice_line"
+where source_row_id is not null
+group by source_row_id
+having count(*) > 1
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:47.077031 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:48.096701 [debug] [Thread-1 (]: SQL status: SELECT 1 in 1.020 seconds
+[0m00:00:48.099352 [debug] [Thread-1 (]: On test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda: ROLLBACK
+[0m00:00:48.101306 [debug] [Thread-1 (]: On test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda: Close
+[0m00:00:48.102950 [info ] [Thread-1 (]: 13 of 15 PASS unique_fact_invoice_line_source_row_id ........................... [[32mPASS[0m in 1.06s]
+[0m00:00:48.104367 [debug] [Thread-1 (]: Finished running node test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda
+[0m00:00:48.105716 [debug] [Thread-2 (]: Began running node model.retail_learning.daily_sales
+[0m00:00:48.107428 [info ] [Thread-2 (]: 14 of 15 START sql table model candidate_a7e08816e129.daily_sales .............. [RUN]
+[0m00:00:48.109034 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.retail_learning.all_rows_accounted, now model.retail_learning.daily_sales)
+[0m00:00:48.110304 [debug] [Thread-2 (]: Began compiling node model.retail_learning.daily_sales
+[0m00:00:48.113522 [debug] [Thread-2 (]: Writing injected SQL for node "model.retail_learning.daily_sales"
+[0m00:00:48.128858 [debug] [Thread-2 (]: Began executing node model.retail_learning.daily_sales
+[0m00:00:48.132401 [debug] [Thread-2 (]: Writing runtime sql for node "model.retail_learning.daily_sales"
+[0m00:00:48.148233 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.daily_sales"
+[0m00:00:48.149795 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.daily_sales"} */
+
+  
+    
+
+  create  table "warehouse"."candidate_a7e08816e129"."daily_sales__dbt_tmp"
+  
+  
+    as
+  
+  (
+    select invoice_date,currency,country,count(*) line_count,
+ sum(case when line_amount>0 and not is_cancellation then line_amount else 0 end)::numeric(38,6) gross_sales,
+ sum(case when line_amount<0 then -line_amount else 0 end)::numeric(38,6) credits,
+ sum(line_amount)::numeric(38,6) net_sales
+from "warehouse"."candidate_a7e08816e129"."fact_invoice_line" group by invoice_date,currency,country
+  );
+  
+[0m00:00:48.151222 [debug] [Thread-2 (]: Opening a new connection, currently in state closed
+[0m00:00:48.340637 [debug] [Thread-2 (]: SQL status: SELECT 3237 in 0.189 seconds
+[0m00:00:48.344375 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.daily_sales"
+[0m00:00:48.345792 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.daily_sales"} */
+alter table "warehouse"."candidate_a7e08816e129"."daily_sales__dbt_tmp" rename to "daily_sales"
+[0m00:00:48.347484 [debug] [Thread-2 (]: SQL status: ALTER TABLE in 0.000 seconds
+[0m00:00:48.349582 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: COMMIT
+[0m00:00:48.350990 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.daily_sales"
+[0m00:00:48.352372 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: COMMIT
+[0m00:00:48.354537 [debug] [Thread-2 (]: SQL status: COMMIT in 0.001 seconds
+[0m00:00:48.357480 [debug] [Thread-2 (]: Applying DROP to: "warehouse"."candidate_a7e08816e129"."daily_sales__dbt_backup"
+[0m00:00:48.358959 [debug] [Thread-2 (]: Using postgres connection "model.retail_learning.daily_sales"
+[0m00:00:48.360185 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "model.retail_learning.daily_sales"} */
+drop table if exists "warehouse"."candidate_a7e08816e129"."daily_sales__dbt_backup" cascade
+[0m00:00:48.362323 [debug] [Thread-2 (]: SQL status: DROP TABLE in 0.000 seconds
+[0m00:00:48.364500 [debug] [Thread-2 (]: On model.retail_learning.daily_sales: Close
+[0m00:00:48.365938 [debug] [Thread-2 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '7e4efd6f-ee1c-474f-b27d-7aa4eb9a6795', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5ecab560>]}
+[0m00:00:48.367418 [info ] [Thread-2 (]: 14 of 15 OK created sql table model candidate_a7e08816e129.daily_sales ......... [[32mSELECT 3237[0m in 0.26s]
+[0m00:00:48.368823 [debug] [Thread-2 (]: Finished running node model.retail_learning.daily_sales
+[0m00:00:48.370556 [debug] [Thread-1 (]: Began running node test.retail_learning.reconcile_gold
+[0m00:00:48.371883 [info ] [Thread-1 (]: 15 of 15 START test reconcile_gold ............................................. [RUN]
+[0m00:00:48.373277 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.retail_learning.unique_fact_invoice_line_source_row_id.0c90777fda, now test.retail_learning.reconcile_gold)
+[0m00:00:48.374330 [debug] [Thread-1 (]: Began compiling node test.retail_learning.reconcile_gold
+[0m00:00:48.378670 [debug] [Thread-1 (]: Writing injected SQL for node "test.retail_learning.reconcile_gold"
+[0m00:00:48.389837 [debug] [Thread-1 (]: Began executing node test.retail_learning.reconcile_gold
+[0m00:00:48.392544 [debug] [Thread-1 (]: Writing runtime sql for node "test.retail_learning.reconcile_gold"
+[0m00:00:48.403656 [debug] [Thread-1 (]: Using postgres connection "test.retail_learning.reconcile_gold"
+[0m00:00:48.404945 [debug] [Thread-1 (]: On test.retail_learning.reconcile_gold: /* {"app": "dbt", "dbt_version": "1.11.13", "profile_name": "retail_learning", "target_name": "lab", "node_id": "test.retail_learning.reconcile_gold"} */
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  select 1 as failure
+where (select sum(line_amount) from "warehouse"."candidate_a7e08816e129"."fact_invoice_line")
+ is distinct from (select sum(net_sales) from "warehouse"."candidate_a7e08816e129"."daily_sales")
+  
+  
+      
+    ) dbt_internal_test
+[0m00:00:48.406251 [debug] [Thread-1 (]: Opening a new connection, currently in state closed
+[0m00:00:48.459049 [debug] [Thread-1 (]: SQL status: SELECT 1 in 0.053 seconds
+[0m00:00:48.462072 [debug] [Thread-1 (]: On test.retail_learning.reconcile_gold: ROLLBACK
+[0m00:00:48.463925 [debug] [Thread-1 (]: On test.retail_learning.reconcile_gold: Close
+[0m00:00:48.465568 [info ] [Thread-1 (]: 15 of 15 PASS reconcile_gold ................................................... [[32mPASS[0m in 0.09s]
+[0m00:00:48.466754 [debug] [Thread-1 (]: Finished running node test.retail_learning.reconcile_gold
+[0m00:00:48.468979 [debug] [MainThread]: On master: COMMIT
+[0m00:00:48.470270 [debug] [MainThread]: Using postgres connection "master"
+[0m00:00:48.471474 [debug] [MainThread]: On master: COMMIT
+[0m00:00:48.472561 [debug] [MainThread]: Opening a new connection, currently in state closed
+[0m00:00:48.478990 [debug] [MainThread]: SQL status: COMMIT in 0.006 seconds
+[0m00:00:48.480590 [debug] [MainThread]: On master: Close
+[0m00:00:48.482079 [debug] [MainThread]: Connection 'master' was properly closed.
+[0m00:00:48.483325 [debug] [MainThread]: Connection 'test.retail_learning.reconcile_gold' was properly closed.
+[0m00:00:48.484465 [debug] [MainThread]: Connection 'model.retail_learning.daily_sales' was properly closed.
+[0m00:00:48.485746 [info ] [MainThread]: 
+[0m00:00:48.486545 [info ] [MainThread]: Finished running 7 table models, 8 data tests in 0 hours 0 minutes and 11.76 seconds (11.76s).
+[0m00:00:48.488983 [debug] [MainThread]: Command end result
+[0m00:00:48.570185 [debug] [MainThread]: Wrote artifact WritableManifest to /opt/lab/dbt/target/manifest.json
+[0m00:00:48.577811 [debug] [MainThread]: Wrote artifact SemanticManifest to /opt/lab/dbt/target/semantic_manifest.json
+[0m00:00:48.589678 [debug] [MainThread]: Wrote artifact RunExecutionResult to /opt/lab/dbt/target/run_results.json
+[0m00:00:48.590862 [info ] [MainThread]: 
+[0m00:00:48.592447 [info ] [MainThread]: [32mCompleted successfully[0m
+[0m00:00:48.593635 [info ] [MainThread]: 
+[0m00:00:48.594676 [info ] [MainThread]: Done. PASS=15 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=15
+[0m00:00:48.596402 [debug] [MainThread]: Resource report: {"command_name": "build", "command_success": true, "command_wall_clock_time": 13.801074, "process_in_blocks": "15029", "process_kernel_time": 0.472445, "process_mem_max_rss": "157480", "process_out_blocks": "0", "process_user_time": 4.099863}
+[0m00:00:48.597713 [debug] [MainThread]: Command `dbt build` succeeded at 00:00:48.597617 after 13.80 seconds
+[0m00:00:48.599062 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda262e1e0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbda1b560f0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7cbd5f80a7e0>]}
+[0m00:00:48.600037 [debug] [MainThread]: Flushing usage events
+[0m00:00:50.240163 [debug] [MainThread]: An error was encountered while trying to flush usage events

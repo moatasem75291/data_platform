@@ -1,1 +1,1 @@
-select * from "warehouse"."candidate_6cd0871b5088"."stg_valid_lines"
+select * from "warehouse"."candidate_a7e08816e129"."stg_valid_lines"
