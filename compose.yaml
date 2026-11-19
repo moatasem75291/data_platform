@@ -1,0 +1,254 @@
+name: data-platform-learning
+x-metadata-server: &metadata-server
+  image: docker.getcollate.io/openmetadata/server:2.0.8
+  profiles: [metadata]
+  env_file:
+    - path: ./data/openmetadata/runtime.env
+      required: false
+  environment:
+    DB_DRIVER_CLASS: org.postgresql.Driver
+    DB_SCHEME: postgresql
+    DB_HOST: metadata-db
+    DB_PORT: "5432"
+    DB_USER: openmetadata
+    OM_DATABASE: openmetadata
+    ELASTICSEARCH_HOST: metadata-search
+    ELASTICSEARCH_PORT: "9200"
+    SEARCH_TYPE: elasticsearch
+    AUTHENTICATION_ENABLE_SELF_SIGNUP: "false"
+    PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+    OPENMETADATA_HEAP_OPTS: -Xms512m -Xmx1g
+    MASK_PASSWORDS_API: "true"
+    RSA_PUBLIC_KEY_FILE_PATH: /opt/lab-keys/public.der
+    RSA_PRIVATE_KEY_FILE_PATH: /opt/lab-keys/private.der
+  volumes: ["./data/openmetadata/keys:/opt/lab-keys:ro"]
+  mem_limit: 2g
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    environment:
+      POSTGRES_USER: lab_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/configure.py first}
+      POSTGRES_DB: warehouse
+      READER_PASSWORD: ${READER_PASSWORD}
+    ports: ["127.0.0.1:15432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres:/docker-entrypoint-initdb.d:ro
+      - ./scripts:/lab-scripts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab_admin -d warehouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 1g
+  seaweedfs:
+    image: ${SEAWEEDFS_IMAGE:-chrislusf/seaweedfs:latest}
+    command: server -s3 -dir=/data -s3.config=/etc/seaweedfs/s3.json -volume.max=32 -master.volumeSizeLimitMB=1024
+    ports: ["127.0.0.1:18333:8333"]
+    volumes:
+      - seaweed_data:/data
+      - ./infra/seaweedfs.json:/etc/seaweedfs/s3.json:ro
+    mem_limit: 1g
+  notebook:
+    image: data-platform-learning-notebook:local
+    build: .
+    working_dir: /opt/lab
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: lab_admin
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: warehouse
+      S3_ENDPOINT: http://seaweedfs:8333
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+      TRINO_HOST: trino
+      TRINO_PORT: "8080"
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      PIPELINE_API_TOKEN: ${PIPELINE_API_TOKEN}
+      READER_PASSWORD: ${READER_PASSWORD}
+      SPARK_LOCAL_IP: "127.0.0.1"
+      KAFKA_BOOTSTRAP: kafka:9092
+      DEBEZIUM_URL: http://connect:8083
+      LAB_ROOT: /opt/lab
+    ports: ["127.0.0.1:18888:8888"]
+    volumes: [".:/opt/lab"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      seaweedfs: {condition: service_started}
+    mem_limit: 6g
+  trino:
+    image: ${TRINO_IMAGE:-trinodb/trino:484}
+    ports: ["127.0.0.1:18080:8080"]
+    volumes:
+      - ./infra/trino/iceberg.properties:/etc/trino/catalog/lake.properties:ro
+      - ./infra/trino/postgres.properties:/etc/trino/catalog/warehouse.properties:ro
+      - ./infra/trino/jvm.config:/etc/trino/jvm.config:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+    mem_limit: 3g
+  superset:
+    profiles: [bi]
+    build: {context: ., dockerfile: infra/Dockerfile.superset}
+    image: data-platform-learning-superset:local
+    environment:
+      SUPERSET_CONFIG_PATH: /app/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      PG_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./infra/superset_config.py:/app/superset_config.py:ro
+      - ./scripts/superset-init.sh:/app/lab-init.sh:ro
+      - superset_data:/app/superset_home
+    command: ["bash", "/app/lab-init.sh"]
+    ports: ["127.0.0.1:18088:8088"]
+    mem_limit: 2g
+  airflow:
+    profiles: [orchestration]
+    image: ${AIRFLOW_IMAGE:-apache/airflow:3.3.1-python3.12}
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://lab_admin:${POSTGRES_PASSWORD}@postgres:5432/airflow
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
+      LAB_TOKEN: ${PIPELINE_API_TOKEN}
+    command: standalone
+    volumes: ["./dags:/opt/airflow/dags:ro", "airflow_logs:/opt/airflow/logs"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    ports: ["127.0.0.1:18081:8080"]
+    mem_limit: 3g
+  kafka:
+    profiles: [cdc]
+    image: ${KAFKA_IMAGE:-apache/kafka:4.1.0}
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: -Xmx512M -Xms256M
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes: ["kafka_data:/tmp/kraft-combined-logs"]
+    mem_limit: 1g
+  connect:
+    profiles: [cdc]
+    image: ${DEBEZIUM_IMAGE:-quay.io/debezium/connect:3.3}
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: lab-connect
+      CONFIG_STORAGE_TOPIC: lab-connect-config
+      OFFSET_STORAGE_TOPIC: lab-connect-offsets
+      STATUS_STORAGE_TOPIC: lab-connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      HEAP_OPTS: -Xmx512M -Xms256M
+    depends_on: [kafka, postgres]
+    ports: ["127.0.0.1:18083:8083"]
+    mem_limit: 1g
+  prometheus:
+    profiles: [monitoring]
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.0}
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports: ["127.0.0.1:19090:9090"]
+    mem_limit: 512m
+  grafana:
+    profiles: [monitoring]
+    image: ${GRAFANA_IMAGE:-grafana/grafana:12.2.0}
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes: ["grafana_data:/var/lib/grafana", "./monitoring/grafana:/etc/grafana/provisioning:ro"]
+    ports: ["127.0.0.1:13000:3000"]
+    mem_limit: 512m
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    profiles: [cdc]
+    ports:
+      - "127.0.0.1:18084:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: learning-lab
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+      KAFKA_CLUSTERS_0_READONLY: "true"
+    depends_on:
+      - kafka
+      - connect
+  metadata-db:
+    profiles: [metadata]
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    env_file:
+      - path: ./data/openmetadata/runtime.env
+        required: false
+    environment:
+      POSTGRES_USER: openmetadata
+      POSTGRES_DB: openmetadata
+    volumes: ["metadata_db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "openmetadata", "-d", "openmetadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+  metadata-search:
+    profiles: [metadata]
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    volumes: ["metadata_search:/usr/share/elasticsearch/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=3s' | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+    mem_limit: 2g
+  metadata-migrate:
+    <<: *metadata-server
+    command: ["./bootstrap/openmetadata-ops.sh", "migrate"]
+    depends_on:
+      metadata-db: {condition: service_healthy}
+      metadata-search: {condition: service_healthy}
+  openmetadata:
+    <<: *metadata-server
+    ports: ["127.0.0.1:8585:8585"]
+    depends_on:
+      metadata-db: {condition: service_healthy}
+      metadata-search: {condition: service_healthy}
+      metadata-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8586/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+volumes:
+  postgres_data:
+  seaweed_data:
+  superset_data:
+  airflow_logs:
+  kafka_data:
+  prometheus_data:
+  grafana_data:
+  metadata_db:
+  metadata_search:

@@ -1,0 +1,667 @@
+{
+  "title": "Retail Pipeline | Releases and Quality",
+  "uid": "learning-pipeline",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": [
+    "retail-lab",
+    "observability"
+  ],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Full workbook input",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_input_rows{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "title": "Accepted invoice lines",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_accepted_rows{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "title": "Quarantined lines",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_quarantined_rows{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "title": "Exact-match groups",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_reconciled_groups{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      }
+    },
+    {
+      "title": "Last full run",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_pipeline_last_attempt_success",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Failed",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "Passed",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "title": "Current run",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_pipeline_running",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Idle",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "Running",
+                  "color": "blue"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 5
+      }
+    },
+    {
+      "title": "dbt checks passed",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_dbt_tests_passed{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      }
+    },
+    {
+      "title": "Release age",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "time() - lab_publication_timestamp_seconds{scope=\"full\"}",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 86400
+              },
+              {
+                "color": "red",
+                "value": 93600
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      }
+    },
+    {
+      "title": "Full execution duration",
+      "description": "",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_pipeline_duration_seconds{scope=\"full\"}",
+          "legendFormat": "Full execution duration",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      }
+    },
+    {
+      "title": "Last successful run by stage",
+      "description": "",
+      "type": "bargauge",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_pipeline_stage_duration_seconds",
+          "legendFormat": "{{stage}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 10,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      }
+    },
+    {
+      "title": "Successful and failed attempts",
+      "description": "Counters start with this instrumentation and persist across service restarts.",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_pipeline_attempts_total",
+          "legendFormat": "{{result}}",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 18
+      }
+    },
+    {
+      "title": "Quarantine rate",
+      "description": "",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "100 * lab_quarantined_rows{scope=\"full\"} / lab_input_rows{scope=\"full\"}",
+          "legendFormat": "Quarantine rate",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 18
+      }
+    },
+    {
+      "title": "Unaccounted input rows",
+      "description": "",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_input_rows{scope=\"full\"} - lab_accepted_rows{scope=\"full\"} - lab_quarantined_rows{scope=\"full\"}",
+          "legendFormat": "Unaccounted input rows",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 13,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 18
+      }
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "OpenMetadata",
+      "url": "http://localhost:8585",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Superset",
+      "url": "http://localhost:18088/superset/dashboard/retail-overview/",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Airflow",
+      "url": "http://localhost:18081/dags/retail_learning_pipeline",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Prometheus alerts",
+      "url": "http://localhost:19090/alerts",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Kafka UI",
+      "url": "http://localhost:18084",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Services and catalog",
+      "url": "http://localhost:13000/d/learning-services",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "CDC and WAL",
+      "url": "http://localhost:13000/d/learning-cdc",
+      "targetBlank": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+version: 2
+sources:
+  - name: retail_input
+    schema: "{{ env_var('DBT_RAW_SCHEMA', 'staging') }}"
+    tables:
+      - name: raw_lines
+models:
+  - name: fact_invoice_line
+    description: One valid source workbook row; identical-looking source rows are retained.
+    columns:
+      - name: source_row_id
+        data_tests: [unique, not_null]
+      - name: customer_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('dim_customer')", field: customer_key}
+  - name: dim_customer
+    columns:
+      - name: customer_key
+        data_tests: [unique, not_null]

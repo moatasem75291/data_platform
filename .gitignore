@@ -1,0 +1,12 @@
+.env
+infra/seaweedfs.json
+infra/trino/*.properties
+data/
+artifacts/*.json
+artifacts/*.sql
+artifacts/*.png
+artifacts/*.html
+__pycache__/
+.ipynb_checkpoints/
+DockerDesktopInstaller.exe
+docker-data/

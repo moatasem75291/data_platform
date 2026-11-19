@@ -1,0 +1,44 @@
+[0m22:33:04  Running with dbt=1.11.13
+[0m22:33:04  Registered adapter: postgres=1.11.0
+[0m22:33:04  Unable to do partial parsing because profile has changed
+[0m22:33:06  Found 7 models, 8 data tests, 1 source, 477 macros
+[0m22:33:06  
+[0m22:33:06  Concurrency: 2 threads (target='lab')
+[0m22:33:06  
+[0m22:33:06  1 of 15 START sql table model candidate_6cd0871b5088.stg_typed ................. [RUN]
+[0m22:33:10  1 of 15 OK created sql table model candidate_6cd0871b5088.stg_typed ............ [[32mSELECT 1067371[0m in 3.79s]
+[0m22:33:10  2 of 15 START sql table model candidate_6cd0871b5088.stg_valid_lines ........... [RUN]
+[0m22:33:11  2 of 15 OK created sql table model candidate_6cd0871b5088.stg_valid_lines ...... [[32mSELECT 1067366[0m in 1.21s]
+[0m22:33:11  3 of 15 START sql table model candidate_6cd0871b5088.dim_customer .............. [RUN]
+[0m22:33:11  4 of 15 START sql table model candidate_6cd0871b5088.dim_date .................. [RUN]
+[0m22:33:11  4 of 15 OK created sql table model candidate_6cd0871b5088.dim_date ............. [[32mSELECT 604[0m in 0.18s]
+[0m22:33:11  5 of 15 START sql table model candidate_6cd0871b5088.dim_product ............... [RUN]
+[0m22:33:11  3 of 15 OK created sql table model candidate_6cd0871b5088.dim_customer ......... [[32mSELECT 5943[0m in 0.20s]
+[0m22:33:11  6 of 15 START sql table model candidate_6cd0871b5088.fact_invoice_line ......... [RUN]
+[0m22:33:11  5 of 15 OK created sql table model candidate_6cd0871b5088.dim_product .......... [[32mSELECT 5305[0m in 0.18s]
+[0m22:33:11  7 of 15 START test not_null_dim_customer_customer_key .......................... [RUN]
+[0m22:33:11  7 of 15 PASS not_null_dim_customer_customer_key ................................ [[32mPASS[0m in 0.06s]
+[0m22:33:11  8 of 15 START test unique_dim_customer_customer_key ............................ [RUN]
+[0m22:33:11  8 of 15 PASS unique_dim_customer_customer_key .................................. [[32mPASS[0m in 0.03s]
+[0m22:33:12  6 of 15 OK created sql table model candidate_6cd0871b5088.fact_invoice_line .... [[32mSELECT 1067366[0m in 0.69s]
+[0m22:33:12  9 of 15 START test all_rows_accounted .......................................... [RUN]
+[0m22:33:12  10 of 15 START test not_null_fact_invoice_line_customer_key .................... [RUN]
+[0m22:33:12  10 of 15 PASS not_null_fact_invoice_line_customer_key .......................... [[32mPASS[0m in 0.10s]
+[0m22:33:12  11 of 15 START test not_null_fact_invoice_line_source_row_id ................... [RUN]
+[0m22:33:12  11 of 15 PASS not_null_fact_invoice_line_source_row_id ......................... [[32mPASS[0m in 0.10s]
+[0m22:33:12  12 of 15 START test relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_  [RUN]
+[0m22:33:12  12 of 15 PASS relationships_fact_invoice_line_customer_key__customer_key__ref_dim_customer_  [[32mPASS[0m in 0.13s]
+[0m22:33:12  13 of 15 START test unique_fact_invoice_line_source_row_id ..................... [RUN]
+[0m22:33:12  9 of 15 PASS all_rows_accounted ................................................ [[32mPASS[0m in 0.38s]
+[0m22:33:13  13 of 15 PASS unique_fact_invoice_line_source_row_id ........................... [[32mPASS[0m in 1.12s]
+[0m22:33:13  14 of 15 START sql table model candidate_6cd0871b5088.daily_sales .............. [RUN]
+[0m22:33:13  14 of 15 OK created sql table model candidate_6cd0871b5088.daily_sales ......... [[32mSELECT 3237[0m in 0.24s]
+[0m22:33:13  15 of 15 START test reconcile_gold ............................................. [RUN]
+[0m22:33:13  15 of 15 PASS reconcile_gold ................................................... [[32mPASS[0m in 0.07s]
+[0m22:33:13  
+[0m22:33:13  Finished running 7 table models, 8 data tests in 0 hours 0 minutes and 7.85 seconds (7.85s).
+[0m22:33:14  
+[0m22:33:14  [32mCompleted successfully[0m
+[0m22:33:14  
+[0m22:33:14  Done. PASS=15 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=15
+

@@ -1,0 +1,372 @@
+{
+  "title": "Retail CDC | Kafka, Debezium and WAL",
+  "uid": "learning-cdc",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": [
+    "retail-lab",
+    "observability"
+  ],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Debezium task",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_cdc_connector_running",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Down",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "Up",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "title": "PostgreSQL slot",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_cdc_replication_slot_active",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Down",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "Up",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "title": "Heartbeat age",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "time() - lab_cdc_heartbeat_timestamp_seconds",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "title": "Kafka partitions",
+      "description": "",
+      "type": "stat",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_cdc_topic_partitions",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      }
+    },
+    {
+      "title": "PostgreSQL WAL",
+      "description": "The retained reading measures what the logical replication slot holds on disk.",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_cdc_retained_wal_bytes",
+          "legendFormat": "Retained",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        },
+        {
+          "expr": "lab_cdc_unconfirmed_wal_bytes",
+          "legendFormat": "Unconfirmed",
+          "refId": "B",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "title": "Unconsumed customer change messages",
+      "description": "End offsets minus committed bronze consumer offsets, bounded by the log start.",
+      "type": "timeseries",
+      "datasource": null,
+      "targets": [
+        {
+          "expr": "lab_cdc_unconsumed_messages",
+          "legendFormat": "Unconsumed customer change messages",
+          "refId": "A",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      }
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "OpenMetadata",
+      "url": "http://localhost:8585",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Superset",
+      "url": "http://localhost:18088/superset/dashboard/retail-overview/",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Airflow",
+      "url": "http://localhost:18081/dags/retail_learning_pipeline",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Prometheus alerts",
+      "url": "http://localhost:19090/alerts",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Kafka UI",
+      "url": "http://localhost:18084",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Releases and quality",
+      "url": "http://localhost:13000/d/learning-pipeline",
+      "targetBlank": true
+    },
+    {
+      "type": "link",
+      "title": "Services and catalog",
+      "url": "http://localhost:13000/d/learning-services",
+      "targetBlank": true
+    }
+  ]
+}

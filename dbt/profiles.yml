@@ -1,0 +1,12 @@
+retail_learning:
+  target: lab
+  outputs:
+    lab:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'postgres') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('PGUSER', 'lab_admin') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: warehouse
+      schema: "{{ env_var('DBT_BUILD_SCHEMA', 'candidate_manual') }}"
+      threads: 2

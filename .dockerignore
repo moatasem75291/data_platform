@@ -1,0 +1,11 @@
+data
+artifacts
+.env
+infra/seaweedfs.json
+infra/trino/*.properties
+*.zip
+*.b64
+*.exe
+docker-data
+__pycache__
+.ipynb_checkpoints

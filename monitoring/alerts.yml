@@ -1,0 +1,50 @@
+groups:
+  - name: lab_release_and_catalog
+    rules:
+      - alert: RetailMetricsExporterDown
+        expr: up{job="learning_pipeline"} == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: Retail metrics exporter is unreachable}
+      - alert: FullRetailRunFailed
+        expr: lab_pipeline_last_attempt_success == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: The last completed full-workbook run failed}
+      - alert: FullRetailReleaseStale
+        expr: time() - lab_publication_timestamp_seconds{scope="full"} > 26 * 3600
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: The most recent full release is older than 26 hours}
+      - alert: RetailRowsUnaccountedFor
+        expr: lab_input_rows{scope="full"} - lab_accepted_rows{scope="full"} - lab_quarantined_rows{scope="full"} != 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: Accepted and quarantined rows do not account for the full input}
+      - alert: RetailCatalogSyncBehind
+        expr: (lab_publication_timestamp_seconds{scope="full"} > lab_catalog_release_timestamp_seconds{scope="full"}) and on() (lab_service_up{service="openmetadata"} == 1)
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: OpenMetadata has not caught up to the latest published release}
+      - alert: RetailCatalogSyncFailed
+        expr: (lab_catalog_last_sync_success == 0) and on() (lab_service_up{service="openmetadata"} == 1)
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: The latest OpenMetadata refresh failed}
+  - name: lab_cdc
+    rules:
+      - alert: RetailCDCRetainedWAL
+        expr: lab_cdc_retained_wal_bytes > 256 * 1024 * 1024
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: The CDC slot is retaining more than 256 MiB of PostgreSQL WAL}
+      - alert: RetailCDCConnectorUnhealthy
+        expr: lab_cdc_connector_running == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: The Debezium connector or one of its tasks is not running}
+      - alert: RetailCDCHeartbeatStale
+        expr: time() - lab_cdc_heartbeat_timestamp_seconds > 60
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: The source CDC heartbeat is older than one minute}
